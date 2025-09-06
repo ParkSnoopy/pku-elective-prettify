@@ -83,12 +83,13 @@ class TimetableExcel:
 
         self.wb = xlsxwriter.Workbook(filename);
         self.ws = self.wb.add_worksheet("Timetable");
+        self.ws.hide_gridlines(0);
 
         # Default: Set column width
-        self.ws.set_column("A:A", 12);
-        self.ws.set_column("B:F", 18);
+        self.ws.set_column("A:A", 16);
+        self.ws.set_column("B:F", 24);
         if not IGNORE_WEEKEND:
-            self.ws.set_column("F:H", 18);
+            self.ws.set_column("F:H", 22);
 
         # Default: Set row height
         _row_len, _ = self.course_table.shape();
@@ -108,7 +109,7 @@ class TimetableExcel:
             "align": "center",
             "valign": "vcenter",
             "text_wrap": False,
-            "right": 1,
+            "border": 1,
         });
         self.CellFormats.CourseColumn = self.wb.add_format({
             "font_name": "Noto Sans CJK SC",
@@ -119,14 +120,24 @@ class TimetableExcel:
             "text_wrap": False,
             "bottom": 1,
         });
+        self.CellFormats.EmptyBottomline = self.wb.add_format({
+            "bottom": 1,
+        });
         self.CellFormats.CourseTitle = self.wb.add_format({
             "font_name": "Noto Sans CJK SC",
-            "font_size": 10,
+            "font_size": 11,
             "bold": False,
             "align": "left",
             "valign": "top",
             "text_wrap": True,
-            "bg_color": "#00FF00",
+        });
+        self.CellFormats.CourseSubTitle = self.wb.add_format({
+            "font_name": "Noto Sans CJK SC",
+            "font_size": 9,
+            "bold": False,
+            "align": "left",
+            "valign": "top",
+            "text_wrap": True,
         });
         self.CellFormats.CourseContent = self.wb.add_format({
             "font_name": "Noto Sans CJK SC",
@@ -135,7 +146,37 @@ class TimetableExcel:
             "align": "left",
             "valign": "top",
             "text_wrap": True,
+            "bottom": 1,
         });
+        self.CellFormats.CourseTitleRight = self.wb.add_format({
+            "font_name": "Noto Sans CJK SC",
+            "font_size": 11,
+            "bold": False,
+            "align": "left",
+            "valign": "top",
+            "text_wrap": True,
+            "right": 1,
+        });
+        self.CellFormats.CourseSubTitleRight = self.wb.add_format({
+            "font_name": "Noto Sans CJK SC",
+            "font_size": 9,
+            "bold": False,
+            "align": "left",
+            "valign": "top",
+            "text_wrap": True,
+            "right": 1,
+        });
+        self.CellFormats.CourseContentRight = self.wb.add_format({
+            "font_name": "Noto Sans CJK SC",
+            "font_size": 8,
+            "bold": False,
+            "align": "left",
+            "valign": "top",
+            "text_wrap": True,
+            "bottom": 1,
+            "right": 1,
+        });
+
 
     def __del__(self):
         try:
@@ -147,12 +188,16 @@ class TimetableExcel:
         row = row * 2 - 1;
         self.ws.write(row, *a, **k);
 
+    def _raw_row_to_upper_row(self, row: int) -> int:
+        return row * 2 - 1;
+
     def write_lower(self, row, *a, **k):
         row = row * 2;
         self.ws.write(row, *a, **k);
 
     def build(self):
         self._write_to_worksheet();
+        self._finalize();
 
     def _write_to_worksheet(self):
         row_len, col_len = self.course_table.shape();
@@ -162,23 +207,46 @@ class TimetableExcel:
 
                 if row != -1 and col != -1:
                     cell = self.course_table.get_cell(row, col);
-                    if cell:
-                        self.write_upper(row+1, col+1,
-                            f"  {cell.classname}\n（{cell.classroom}，{cell.frequency}）",
-                            self.CellFormats.CourseTitle
-                        );
-                        self.write_lower(row+1, col+1,
-                            f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
-                            self.CellFormats.CourseContent
-                        );
+
+                    if not cell:
+                        self.write_lower(row+1, col+1, "", self.CellFormats.EmptyBottomline);
+
+                    else:
+                        _upper_row = self._raw_row_to_upper_row(row+1);
+
+                        if col + 1 >= col_len:
+                            # Is Rightmost Column
+                            self.ws.write_rich_string(_upper_row, col+1,
+                                f"  {cell.classname}\n",
+                                self.CellFormats.CourseSubTitleRight, f"（{cell.classroom}，{cell.frequency}）",
+                                self.CellFormats.CourseTitleRight
+                            );
+                            self.write_lower(row+1, col+1,
+                                f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
+                                self.CellFormats.CourseContentRight
+                            );
+
+                        else:
+                            # Is Center Column
+                            self.ws.write_rich_string(_upper_row, col+1,
+                                f"  {cell.classname}\n",
+                                self.CellFormats.CourseSubTitle, f"（{cell.classroom}，{cell.frequency}）",
+                                self.CellFormats.CourseTitle
+                            );
+                            self.write_lower(row+1, col+1,
+                                f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
+                                self.CellFormats.CourseContent
+                            );
 
                 elif row == col == -1:
-                    self.write_lower(row+1, col+1, "", self.CellFormats.CourseColumn);
+                    self.write_lower(row+1, col+1, "", self.CellFormats.CourseIndex);
                 elif row == -1:
                     self.write_lower(row+1, col+1, f"周{EN2CN_NUM_MAP[col+1]}", self.CellFormats.CourseColumn);
                 elif col == -1:
                     self.ws.merge_range(row*2+1, col+1, row*2+2, col+1, f"第{EN2CN_NUM_MAP[row+1]}节", self.CellFormats.CourseIndex);
 
+    def _finalize(self):
+        ...
 
 
 class CourseTable:
