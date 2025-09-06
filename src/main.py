@@ -18,6 +18,20 @@ EN2CN_NUM_MAP = {
     11: "十一",
     12: "十二",
 };
+CLASS_TIME_MAP = {
+    1 : "08:00 ~ 08:50",
+    2 : "09:00 ~ 09:50",
+    3 : "10:10 ~ 11:00",
+    4 : "11:10 ~ 12:00",
+    5 : "13:00 ~ 13:50",
+    6 : "14:00 ~ 14:50",
+    7 : "15:10 ~ 16:00",
+    8 : "16:10 ~ 17:00",
+    9 : "17:10 ~ 18:00",
+    10: "18:40 ~ 19:30",
+    11: "19:40 ~ 20:30",
+    12: "20:40 ~ 21:30",
+};
 
 
 
@@ -83,7 +97,6 @@ class TimetableExcel:
 
         self.wb = xlsxwriter.Workbook(filename);
         self.ws = self.wb.add_worksheet("Timetable");
-        self.ws.hide_gridlines(0);
 
         # Default: Set column width
         self.ws.set_column("A:A", 16);
@@ -103,16 +116,16 @@ class TimetableExcel:
             self.ws.set_row(_row, 36);
 
         self.CellFormats.CourseIndex = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 11,
             "bold": False,
             "align": "center",
             "valign": "vcenter",
-            "text_wrap": False,
+            "text_wrap": True,
             "border": 1,
         });
         self.CellFormats.CourseColumn = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 11,
             "bold": False,
             "align": "center",
@@ -124,7 +137,7 @@ class TimetableExcel:
             "bottom": 1,
         });
         self.CellFormats.CourseTitle = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 11,
             "bold": False,
             "align": "left",
@@ -132,15 +145,15 @@ class TimetableExcel:
             "text_wrap": True,
         });
         self.CellFormats.CourseSubTitle = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
-            "font_size": 9,
+            "font_name": "SIMHEI",
+            "font_size": 10,
             "bold": False,
             "align": "left",
             "valign": "top",
             "text_wrap": True,
         });
         self.CellFormats.CourseContent = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 8,
             "bold": False,
             "align": "left",
@@ -149,7 +162,7 @@ class TimetableExcel:
             "bottom": 1,
         });
         self.CellFormats.CourseTitleRight = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 11,
             "bold": False,
             "align": "left",
@@ -158,8 +171,8 @@ class TimetableExcel:
             "right": 1,
         });
         self.CellFormats.CourseSubTitleRight = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
-            "font_size": 9,
+            "font_name": "SIMHEI",
+            "font_size": 10,
             "bold": False,
             "align": "left",
             "valign": "top",
@@ -167,7 +180,7 @@ class TimetableExcel:
             "right": 1,
         });
         self.CellFormats.CourseContentRight = self.wb.add_format({
-            "font_name": "Noto Sans CJK SC",
+            "font_name": "SIMHEI",
             "font_size": 8,
             "bold": False,
             "align": "left",
@@ -214,7 +227,7 @@ class TimetableExcel:
                     else:
                         _upper_row = self._raw_row_to_upper_row(row+1);
 
-                        if col + 1 >= col_len:
+                        if col+2 >= col_len:
                             # Is Rightmost Column
                             self.ws.write_rich_string(_upper_row, col+1,
                                 f"  {cell.classname}\n",
@@ -235,7 +248,7 @@ class TimetableExcel:
                             );
                             self.write_lower(row+1, col+1,
                                 f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
-                                self.CellFormats.CourseContent
+                                self.CellFormats.CourseContentRight
                             );
 
                 elif row == col == -1:
@@ -243,10 +256,11 @@ class TimetableExcel:
                 elif row == -1:
                     self.write_lower(row+1, col+1, f"周{EN2CN_NUM_MAP[col+1]}", self.CellFormats.CourseColumn);
                 elif col == -1:
-                    self.ws.merge_range(row*2+1, col+1, row*2+2, col+1, f"第{EN2CN_NUM_MAP[row+1]}节", self.CellFormats.CourseIndex);
+                    self.ws.merge_range(row*2+1, col+1, row*2+2, col+1, f"第{EN2CN_NUM_MAP[row+1]}节\n{CLASS_TIME_MAP[row+1]}", self.CellFormats.CourseIndex);
 
     def _finalize(self):
-        ...
+        self.ws.hide_gridlines();
+
 
 
 class CourseTable:
