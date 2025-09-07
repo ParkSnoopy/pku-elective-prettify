@@ -9,3 +9,8 @@ uv sync
 uv run src\main.py
 ```
 3. Take result from `output` folder
+
+
+---
+## Sample result
+[sample 1](output/sample.png)
