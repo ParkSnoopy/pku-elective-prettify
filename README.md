@@ -13,4 +13,5 @@ uv run src\main.py
 
 ---
 ## Sample result
-[sample 1](output/sample.png)
+![sample 1](output/sample.png)
+
