@@ -10,5 +10,6 @@ wheels/
 .venv
 
 # Private files
-samples/
-0.processed.xlsx
+*.xls
+*.xlsx
+*.png
