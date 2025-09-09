@@ -36,6 +36,11 @@ class CourseCell:
             )
         );
 
+        # In case class name is `高等数学(B)` 等
+        if len(_elems[1]) <= 1:
+            _elem = _elems.pop(1);
+            _elems[0] = _elems[0] + " " + _elem;
+
         # _elems:
         #   0          1          2     3                   4          5...
         # [ classname, classroom, note, weekly_or_biweekly, examinfo, (MAYBE etc[...]) ]
