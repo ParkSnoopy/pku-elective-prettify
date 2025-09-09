@@ -1,16 +1,7 @@
 # pku-elective-prettify
 
 ## How to use
-1. Put `schedule.xls` downloaded from [选课结果](elective.pku.edu.cn) into `input` folder
-2. Run:
-```bash
-pip install uv
-uv run tui.py
-```
-3. Take result from `output` folder
-
-
----
-## Sample result
-![sample 1](output/sample.png)
-
+1. Download `schedule.xls` from [elective.pku.edu.cn](https://elective.pku.edu.cn/)
+2. Go to [Latest Release](https://github.com/ParkSnoopy/pku-elective-prettify/releases)
+3. Customize you `palette.json`
+4. run `pku-elective-prettify.exe`
