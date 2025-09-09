@@ -5,8 +5,7 @@
 2. Run:
 ```bash
 pip install uv
-uv sync
-uv run src\main.py
+uv run tui.py
 ```
 3. Take result from `output` folder
 
