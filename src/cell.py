@@ -47,10 +47,6 @@ class CourseCell:
         # Strip `Note: ` itself
         self.note = self.note.replace("备注：", "").strip();
 
-        # Unify expression
-        if self.frequency == "单周":
-            self.frequency = "每周";
-
         # Handle unexpected Notes
         if len(_elems) > 5:
             if self.note:
