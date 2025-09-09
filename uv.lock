@@ -80,10 +80,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "excel3img", specifier = ">=1.5.0" },
-    { name = "questionary", specifier = ">=2.1.1" },
-    { name = "xlrd", specifier = ">=2.0.2" },
-    { name = "xlsxwriter", specifier = ">=3.2.5" },
+    { name = "excel3img", specifier = ">=1.5" },
+    { name = "questionary", specifier = ">=2.1" },
+    { name = "xlrd", specifier = ">=2.0" },
+    { name = "xlsxwriter", specifier = ">=3.2" },
 ]
 
 [[package]]
