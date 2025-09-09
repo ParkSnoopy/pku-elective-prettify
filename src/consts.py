@@ -2,9 +2,6 @@ from pathlib import Path;
 
 
 
-# Safety: this file must be next to `main.py` file
-SCRIPT_PATH = Path(__file__).parent;
-
 PALETTE_SIZE = 5;
 LIGHTER_CYCLE = 2;
 
