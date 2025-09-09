@@ -85,18 +85,25 @@ input_filename = '.'.join(
 output_filepath = f"./output/{input_filename}.xlsx";
 output_filepath_png = output_filepath + ".png";
 
-palette = ColorPalette();
-ct = CourseTable(input_filepath);
-ct.export(output_filepath, palette=palette);
+_re_run = True;
+while _re_run:
+    palette = ColorPalette();
+    ct = CourseTable(input_filepath);
+    ct.export(output_filepath, palette=palette);
 
-excel3img.export_img(output_filepath, output_filepath_png, "Timetable", 
-    "A1:F25" if IGNORE_WEEKEND else "A1:H25"
-);
+    excel3img.export_img(output_filepath, output_filepath_png, "Timetable", 
+        "A1:F25" if IGNORE_WEEKEND else "A1:H25"
+    );
 
+    if questionary.confirm(
+        "Open resulted PNG file",
+        default=True,
+    ).ask():
+        #import subprocess;
+        #subprocess.Popen(["start", f"{output_filepath_png.replace("/", "\\")}"]);
+        os.startfile(f"{output_filepath_png.replace("/", "\\")}");
 
-
-if questionary.confirm(
-    "Open resulted PNG file",
-    default=True,
-).ask():
-    os.system(f"{output_filepath_png.replace("/", "\\")}");
+    _re_run = questionary.confirm(
+        "Re-Run to generate a new one",
+        default=False,
+    ).ask();
