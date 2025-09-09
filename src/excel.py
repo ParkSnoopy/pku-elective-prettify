@@ -127,7 +127,7 @@ class TimetableExcel:
                         _upper_row = self._raw_row_to_upper_row(row+1);
 
                         self.ws.write_rich_string(_upper_row, col+1,
-                            f"  {cell.classname}\n",
+                            f" {cell.classname}\n",
                             self.CellFormats.CourseSubTitle.build_with_last_format(bold=False), f"（{cell.classroom}，{cell.frequency}）",
                             self.CellFormats.CourseTitle.build_with_last_format(bold=True, bg_color=palette.pick_by_lable(cell._lable))
                         );
