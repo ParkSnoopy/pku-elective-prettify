@@ -1,9 +1,9 @@
-from consts import (
+from .consts import (
     SCRIPT_PATH, IGNORE_WEEKEND, 
 );
 
-from palette import ColorPalette;
-from table import CourseTable;
+from .palette import ColorPalette;
+from .table import CourseTable;
 
 
 

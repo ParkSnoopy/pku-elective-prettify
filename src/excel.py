@@ -1,11 +1,11 @@
 import xlsxwriter;
 
-from consts import (
+from .consts import (
     IGNORE_WEEKEND, CLASS_TIME_MAP, EN2CN_NUM_MAP, 
 );
 
-from palette import ColorPalette;
-from formatter import ExcelFormatFactory;
+from .palette import ColorPalette;
+from .formatter import ExcelFormatFactory;
 
 
 

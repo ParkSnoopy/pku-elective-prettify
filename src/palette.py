@@ -1,15 +1,19 @@
 import xlsxwriter, json, questionary;
 
-from consts import (
-    SCRIPT_PATH, HEX_LOOP, LIGHTER_CYCLE, 
+from .consts import (
+    HEX_LOOP, LIGHTER_CYCLE, 
 );
 
 
 
 class ColorPalette:
     def __init__(self, palette_name=None):
+        _jsonpath = questionary.path(
+            "Select `palette.json` to use",
+            default="./palette.json",
+        ).ask();
 
-        with open(SCRIPT_PATH / "palette.json", "r") as jsonfile:
+        with open(_jsonpath, "r") as jsonfile:
             self._full_palette = json.load(jsonfile);
 
         if not palette_name:

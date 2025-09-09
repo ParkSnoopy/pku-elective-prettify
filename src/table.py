@@ -1,11 +1,11 @@
 import xlrd, random;
 
-from consts import (
+from .consts import (
     IGNORE_WEEKEND, PALETTE_SIZE, 
 );
 
-from cell import CourseCell;
-from excel import TimetableExcel;
+from .cell import CourseCell;
+from .excel import TimetableExcel;
 
 
 
