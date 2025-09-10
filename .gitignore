@@ -10,6 +10,7 @@ wheels/
 .venv
 
 # Private files
+assets.build/
 *.xls
 *.xlsx
 *.png
