@@ -14,12 +14,18 @@ class CourseTable:
         wb = xlrd.open_workbook(filename);
         ws = wb.sheet_by_index(0);
 
+        self._post_append = list();
         self._table = [[
-            CourseCell( idx_row, idx_col, ws.cell(idx_row, idx_col).value ) if ws.cell(idx_row, idx_col).value else None
+            CourseCell( idx_row, idx_col, ws.cell(idx_row, idx_col).value, course_table=self ) if ws.cell(idx_row, idx_col).value else None
             for idx_col in range(1, ws.ncols if not IGNORE_WEEKEND else ws.ncols-2)
         ]
             for idx_row in range(1, ws.nrows)
         ];
+        #print(f"{self._post_append=}");
+        #raise Exception("panic!();")
+
+        for _cc in self._post_append:
+            self._table[_cc._row-1][_cc._col-1] = _cc;
 
     def shape(self) -> (int, int): # ( row length, column length )
         return (

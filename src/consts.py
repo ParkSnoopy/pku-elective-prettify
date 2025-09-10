@@ -20,6 +20,9 @@ EN2CN_NUM_MAP = {
     11: "十一",
     12: "十二",
 };
+CN2EN_NUM_MAP = {
+    v: k for k, v in EN2CN_NUM_MAP.items()
+};
 CLASS_TIME_MAP = {
     1 : "08:00 ~ 08:50",
     2 : "09:00 ~ 09:50",

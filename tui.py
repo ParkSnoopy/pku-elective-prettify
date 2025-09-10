@@ -79,7 +79,7 @@ input_filepath = questionary.path(
 input_filename = '.'.join(
     Path(input_filepath)
     .name
-    .split('.')[:-1]
+    .split('.')[0]
 );
 
 output_filepath = f"./output/{input_filename}.xlsx";
