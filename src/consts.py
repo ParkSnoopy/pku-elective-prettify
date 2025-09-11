@@ -2,7 +2,7 @@ from pathlib import Path;
 
 
 
-PALETTE_SIZE = 5;
+DEFAULT_PALETTE_SIZE = 5;
 LIGHTER_CYCLE = 2;
 
 IGNORE_WEEKEND = True;

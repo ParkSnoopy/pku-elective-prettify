@@ -31,12 +31,6 @@ class CourseCell:
 
         _classname = self.classname + name_ex;
 
-        '''
-        if (
-                    _classname not in (_cc.classname     for _cc in course_table._post_append) and
-            all( _cc.classroom not in      classroom_raw for _cc in course_table._post_append )
-        ):
-        '''
         if _classname not in (_cc.classname for _cc in course_table._post_append):
             _classroom = questionary.select(
                 f"Additional class found. Please select classroom for \"{_classname}\"",
@@ -101,7 +95,6 @@ class CourseCell:
         #   0          1          2     3                   4          5...
         # [ classname, classroom, note, weekly_or_biweekly, examinfo, (MAYBE etc[...]) ]
         #
-        #print(_elems);
 
         self.classname, self.classroom, self.note, self.frequency, self.examinfo = _elems[:5];
 
@@ -130,8 +123,6 @@ class CourseCell:
             ];
             _name_ex, _freq, _time, _classroom = "习题课", *_note;
 
-            #print(f"{_name_ex=}, {_freq=}, {_time=}, {_classroom=}");
-
             self._add_post_append_cell(_name_ex, _freq, _time, _classroom, course_table=course_table);
 
             # In case `习题课`, `note` is processed.
@@ -153,7 +144,6 @@ class CourseCell:
         return bool(self._lable);
 
     def __repr__(self) -> str:
-        #return f"<{self.classname}>";
         return self._repr_with_lable();
 
     def _repr_with_lable(self) -> str:

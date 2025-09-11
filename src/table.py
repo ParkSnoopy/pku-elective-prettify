@@ -1,7 +1,7 @@
 import xlrd, random;
 
 from .consts import (
-    IGNORE_WEEKEND, PALETTE_SIZE, 
+    IGNORE_WEEKEND, DEFAULT_PALETTE_SIZE,
 );
 
 from .cell import CourseCell;
@@ -21,8 +21,6 @@ class CourseTable:
         ]
             for idx_row in range(1, ws.nrows)
         ];
-        #print(f"{self._post_append=}");
-        #raise Exception("panic!();")
 
         for _cc in self._post_append:
             self._table[_cc._row-1][_cc._col-1] = _cc;
@@ -92,7 +90,7 @@ class CourseTable:
 
         return _neighbors;
 
-    def _set_unique_index(self, row, col) -> list[int]:
+    def _set_unique_index(self, row, col, palette_size=DEFAULT_PALETTE_SIZE) -> list[int]:
         _overlaps = set();
 
         for _neighbor in self.get_neighbors(row, col).values():
@@ -101,13 +99,13 @@ class CourseTable:
 
         _overlaps.discard(None);
 
-        _indexes = list(filter(lambda idx: idx not in _overlaps, range(PALETTE_SIZE)));
+        _indexes = list(filter(lambda idx: idx not in _overlaps, range(palette_size)));
         _rand_index = random.choice(_indexes);
 
         for _cell in self._recursive_find_neighbors(row, col):
             _cell.set_lable( _rand_index );
 
-    def _assign_color_index(self):
+    def _assign_color_index(self, palette_size=DEFAULT_PALETTE_SIZE):
         _row, _col = self.shape();
 
         for idx_col in range(_col):
@@ -118,15 +116,15 @@ class CourseTable:
                     self._set_unique_index(idx_row, idx_col);
 
     def export(self, filename, palette=None):
-        self._assign_color_index();
-
-        # Default palette
         if not palette:
             palette = ColorPalette(palette_name="pastel_dreamland_adventure");
+        self.palette = palette;
+
+        # Set index based on palette size
+        self._assign_color_index(palette_size=len(self.palette.get_palette()));
 
         tx = TimetableExcel(self, filename);
-        tx.build_with_palette(palette);
-        del tx;
+        tx.build_with_palette(self.palette);
 
     def __repr__(self) -> str:
         return "\n".join(( "\t".join(( str(elem) for elem in row )) for row in self._table ));

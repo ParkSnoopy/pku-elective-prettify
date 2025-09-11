@@ -143,7 +143,6 @@ class TimetableExcel:
                 elif col == -1:
                     self.ws.merge_range(row*2+1, col+1, row*2+2, col+1, "", self.CellFormats.CourseIndex.build());
                     self.ws.write_rich_string(row*2+1, col+1,
-                        #f"第{EN2CN_NUM_MAP[row+1]}节\n",
                         "第 ",
                         self.CellFormats.CourseIndex.build_with_last_format(font_size=16, bold=True),
                         f"{row+1}",
