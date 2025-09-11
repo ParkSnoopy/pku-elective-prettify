@@ -1,5 +1,5 @@
 {
-    "custom_001":
+    "default Colorful":
     [
         "#79adac",
         "#beadf2",
@@ -7,15 +7,7 @@
         "#adf7b6",
         "#ffea99"
     ],
-    "custom_002":
-    [
-        "#79adac",
-        "#beadf2",
-        "#a0c8f2",
-        "#adf7b6",
-        "#ffb4b2"
-    ],
-    "pastel_dreamland_adventure":
+    "Pastel Dreamland Adventure":
     [
         "#cdb4db",
         "#ffc8dd",
@@ -23,7 +15,7 @@
         "#bde0fe",
         "#a2d2ff"
     ],
-    "pastel_dreams":
+    "Pastel Dreams":
     [
         "#809bce",
         "#95b8d1",
@@ -31,7 +23,7 @@
         "#d6eadf",
         "#eac4d5"
     ],
-    "golden_summer_fields":
+    "Golden Summer Fields":
     [
         "#ccd5ae",
         "#e9edc9",
@@ -39,12 +31,60 @@
         "#faedcd",
         "#d4a373"
     ],
-    "spring_delight":
+    "Spring Delight":
     [
         "#79addc",
         "#ffc09f",
         "#ffee93",
         "#fcf5c7",
         "#adf7b6"
+    ],
+    "Passtel colorss":
+    [
+        "#f1c494",
+        "#faf3a5",
+        "#9df79c",
+        "#89d1fb",
+        "#cfaaf6"
+    ],
+    "Pastel Grass":
+    [
+        "#b7e4ba",
+        "#95d59d",
+        "#74c691",
+        "#52b776",
+        "#40915d"
+    ],
+    "Henggarae - Hana":
+    [
+        "#b8d6ec",
+        "#f6c7b7",
+        "#d6c8e8",
+        "#f9f3e3",
+        "#cfcbc5"
+    ],
+    "SaltwaterTaffy":
+    [
+        "#f0ed5f",
+        "#f3c6fc",
+        "#9de0e7",
+        "#edbb7d",
+        "#b5c4fa"
+    ],
+    "ego death at the bachelorette party":
+    [
+        "#ea7d72",
+        "#97851e",
+        "#3e5241",
+        "#2194c2",
+        "#b085de"
+    ],
+    "Dark Winter Pastel Blues":
+    [
+        "#abb9c2",
+        "#c6d6da",
+        "#a9c7ce",
+        "#c8dce9",
+        "#a3b6ba"
     ]
 }
