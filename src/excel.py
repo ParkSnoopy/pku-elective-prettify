@@ -95,15 +95,15 @@ class TimetableExcel:
         except:
             pass;
 
+    def _raw_row_to_lower_row(self, row: int) -> int:
+        return row * 2;
+
     def write_upper(self, row, *a, **k):
-        row = row * 2 - 1;
+        row = self._raw_row_to_lower_row(row) -1;
         self.ws.write(row, *a, **k);
 
-    def _raw_row_to_upper_row(self, row: int) -> int:
-        return row * 2 - 1;
-
     def write_lower(self, row, *a, **k):
-        row = row * 2;
+        row = self._raw_row_to_lower_row(row);
         self.ws.write(row, *a, **k);
 
     def build_with_palette(self, palette: ColorPalette):
@@ -112,68 +112,73 @@ class TimetableExcel:
     def _write_to_worksheet_with_palette(self, palette: ColorPalette):
         row_len, col_len = self.course_table.shape();
 
-        for col in range(-1, col_len-1): # Last column will be handled differently
-            for row in range(-1, row_len):
+        for col in range(0, col_len): # Last column will be handled differently
+            for row in range(0, row_len+1):
 
-                if row != -1 and col != -1:
-                    cell = self.course_table.get_cell(row, col);
+                if row != 0 and col != 0:
+                    cell = self.course_table.get_cell(row-1, col-1);
 
                     if not cell:
-                        self.write_lower(row+1, col+1, "", self.CellFormats.Empty.build_with_last_format(bottom=1));
+                        self.write_lower(row, col, "", self.CellFormats.Empty.build_with_last_format(bottom=1));
 
                     else:
                         # WHEN `CourseCell` EXISTS:
 
-                        _upper_row = self._raw_row_to_upper_row(row+1);
+                        _lower_row = self._raw_row_to_lower_row(row);
+                        _upper_row = _lower_row -1;
 
-                        self.ws.write_rich_string(_upper_row, col+1,
+                        self.ws.write_rich_string(_upper_row, col,
                             f" {cell.classname}\n",
                             self.CellFormats.CourseSubTitle.build_with_last_format(bold=False), f"（{cell.classroom}，{cell.frequency}）",
-                            self.CellFormats.CourseTitle.build_with_last_format(bold=True, bg_color=palette.pick_by_lable(cell._lable))
+                            self.CellFormats.CourseTitle.build_with_last_format(bold=True, bg_color=palette.pick_by_lable(cell.get_lable()))
                         );
-                        self.write_lower(row+1, col+1,
+                        self.write_lower(row, col,
                             f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
-                            self.CellFormats.CourseContent.build_with_last_format(bg_color=palette.pick_by_lable_light(cell._lable))
+                            self.CellFormats.CourseContent.build_with_last_format(bg_color=palette.pick_by_lable_light(cell.get_lable()))
                         );
 
-                elif row == col == -1:
-                    self.write_lower(row+1, col+1, "", self.CellFormats.CourseIndex.build_with_last_format(right=1, border=1));
-                elif row == -1:
-                    self.write_lower(row+1, col+1, f"周{EN2CN_NUM_MAP[col+1]}", self.CellFormats.CourseColumn.build());
-                elif col == -1:
-                    self.ws.merge_range(row*2+1, col+1, row*2+2, col+1, "", self.CellFormats.CourseIndex.build());
-                    self.ws.write_rich_string(row*2+1, col+1,
+                elif row == col == 0:
+                    self.write_lower(row, col, "", self.CellFormats.CourseIndex.build_with_last_format(right=1, border=1));
+                elif row == 0:
+                    self.write_lower(row, col, f"周{EN2CN_NUM_MAP[col]}", self.CellFormats.CourseColumn.build());
+                elif col == 0:
+                    _lower_row = self._raw_row_to_lower_row(row);
+                    _upper_row = _lower_row -1;
+
+                    self.ws.merge_range(_upper_row, col, _upper_row+1, col, "", self.CellFormats.CourseIndex.build());
+                    self.ws.write_rich_string(_upper_row, col,
                         "第 ",
                         self.CellFormats.CourseIndex.build_with_last_format(font_size=16, bold=True),
-                        f"{row+1}",
+                        f"{row}",
                         " 节\n",
                         self.CellFormats.CourseIndex.build_with_last_format(font_name="Consolas"),
-                        f"{CLASS_TIME_MAP[row+1]}",
+                        f"{CLASS_TIME_MAP[row]}",
                         self.CellFormats.CourseIndex.build()
                     );
 
-        for row in range(-1, row_len):
-            col = col_len -1; # all code was based on `-1` index
+        for row in range(0, row_len+1):
+            col = col_len;
 
-            if row != -1 and col != -1:
-                cell = self.course_table.get_cell(row, col);
+            if row != 0 and col != 0:
+                cell = self.course_table.get_cell(row-1, col-1);
 
                 if not cell:
-                    self.write_upper(row+1, col+1, "", self.CellFormats.Empty.build_with_last_format(right=1));
-                    self.write_lower(row+1, col+1, "", self.CellFormats.Empty.build_with_last_format(right=1, bottom=1));
+                    self.write_upper(row, col, "", self.CellFormats.Empty.build_with_last_format(right=1));
+                    self.write_lower(row, col, "", self.CellFormats.Empty.build_with_last_format(right=1, bottom=1));
 
                 else:
-                    _upper_row = self._raw_row_to_upper_row(row+1);
+                    _lower_row = self._raw_row_to_lower_row(row);
+                    _upper_row = _lower_row -1;
 
-                    self.ws.write_rich_string(_upper_row, col+1,
+                    self.ws.write_rich_string(_upper_row, col,
                         f" {cell.classname}\n",
                         self.CellFormats.CourseSubTitle.build_with_last_format(right=1, bold=False), f"（{cell.classroom}，{cell.frequency}）",
-                        self.CellFormats.CourseTitle.build_with_last_format(right=1, bold=True, bg_color=palette.pick_by_lable(cell._lable))
+                        self.CellFormats.CourseTitle.build_with_last_format(right=1, bold=True, bg_color=palette.pick_by_lable(cell.get_lable()))
                     );
-                    self.write_lower(row+1, col+1,
+                    self.write_lower(row, col,
                         f"{cell.note}{'\n' if cell.note else ''}{cell.examinfo}",
-                        self.CellFormats.CourseContent.build_with_last_format(right=1, bg_color=palette.pick_by_lable_light(cell._lable))
+                        self.CellFormats.CourseContent.build_with_last_format(right=1, bg_color=palette.pick_by_lable_light(cell.get_lable()))
                     );
 
-            elif row == -1:
-                self.write_lower(row+1, col+1, f"周{EN2CN_NUM_MAP[col+1]}", self.CellFormats.CourseColumn.build_with_last_format(right=1));
+            elif row == 0:
+                self.write_lower(row, col, f"周{EN2CN_NUM_MAP[col]}", self.CellFormats.CourseColumn.build_with_last_format(right=1));

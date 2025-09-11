@@ -1,13 +1,18 @@
-import xlrd, random;
+import xlrd, random, questionary;
 
 from .consts import (
     IGNORE_WEEKEND, DEFAULT_PALETTE_SIZE,
 );
 
+from .palette import ColorPalette;
 from .cell import CourseCell;
 from .excel import TimetableExcel;
 
 
+
+class PaintRule:
+    Random = 200;
+    GroupByClass = 300;
 
 class CourseTable:
     def __init__(self, filename):
@@ -15,15 +20,30 @@ class CourseTable:
         ws = wb.sheet_by_index(0);
 
         self._post_append = list();
-        self._table = [[
-            CourseCell( idx_row, idx_col, ws.cell(idx_row, idx_col).value, course_table=self ) if ws.cell(idx_row, idx_col).value else None
-            for idx_col in range(1, ws.ncols if not IGNORE_WEEKEND else ws.ncols-2)
-        ]
-            for idx_row in range(1, ws.nrows)
-        ];
 
-        for _cc in self._post_append:
-            self._table[_cc._row-1][_cc._col-1] = _cc;
+        # Considering the first row and column in source data
+        self._table = list();
+        for idx_row in range(ws.nrows-1):
+            _row = list();
+            for idx_col in range(ws.ncols-1 if not IGNORE_WEEKEND else ws.ncols-3):
+
+                src_value = ws.cell(idx_row+1, idx_col+1).value
+                if not src_value:
+                    _row.append(None);
+                    continue;
+
+                cc = CourseCell(
+                    idx_row,
+                    idx_col,
+                    src_value,
+                    course_table=self
+                );
+                _row.append(cc);
+
+            self._table.append(_row);
+
+        for cc in self._post_append:
+            self._table[cc._row][cc._col] = cc;
 
     def shape(self) -> (int, int): # ( row length, column length )
         return (
@@ -41,10 +61,14 @@ class CourseTable:
         return self._table[row_index][col_index];
 
     def get_cell_index(self, cell: CourseCell) -> (int, int): # `( row length, column length )` IF EXISTS ELSE `None`
+        return (cell._row, cell._col);
+
+        """
         for row_index, row in enumerate(self._table):
             for col_index, _cell in enumerate(row):
                 if cell == _cell:
                     return (row_index, col_index);
+        """
 
     def get_neighbors(self, row_index, col_index) -> dict[str, CourseCell]:
         _n_row, _n_col = self.shape();
@@ -68,6 +92,12 @@ class CourseTable:
 
         return _result;
 
+    def get_neighbors_by_cell(self, cell: CourseCell) -> dict[str, CourseCell]:
+        return self.get_neighbors(
+            *self.get_cell_index(cell)
+        );
+
+    """
     def _recursive_find_neighbors(self, row_index, col_index) -> list[CourseCell]:
         _origin = self.get_cell(row_index, col_index)
         _neighbors = [ _origin ];
@@ -89,21 +119,46 @@ class CourseTable:
                     _neighbors_queue.append(_elem);
 
         return _neighbors;
+    """
 
-    def _set_unique_index(self, row, col, palette_size=DEFAULT_PALETTE_SIZE) -> list[int]:
+    def _get_unique_index(self, cell: CourseCell, palette_size=DEFAULT_PALETTE_SIZE) -> int:
+        if (
+            self.paint_rule == PaintRule.GroupByClass and
+            cell.classname in self._paint_mem
+        ):
+            return self._paint_mem[cell.classname];
+
         _overlaps = set();
 
-        for _neighbor in self.get_neighbors(row, col).values():
-            if _neighbor:
-                _overlaps.add( _neighbor._lable );
+        for _d, _neighbor in self.get_neighbors_by_cell(cell).items():
+            if not _neighbor:
+                continue;
+
+            if _d == "left" or _d == "right":
+                if (
+                    self.paint_rule == PaintRule.GroupByClass and
+                    _neighbor.classname in self._paint_mem
+                ):
+                    _overlaps.add( self._paint_mem[_neighbor.classname] );
+                _overlaps.add( _neighbor.get_lable() );
+
+            elif _d == "top" or _d == "bottom":
+                if cell.classname == _neighbor.classname:
+                    if _neighbor.is_labled():
+                        return _neighbor.get_lable();
+
+                _overlaps.add( _neighbor.get_lable() );
 
         _overlaps.discard(None);
 
         _indexes = list(filter(lambda idx: idx not in _overlaps, range(palette_size)));
         _rand_index = random.choice(_indexes);
 
-        for _cell in self._recursive_find_neighbors(row, col):
-            _cell.set_lable( _rand_index );
+        # If `group_by_class`, following same class will painted with same color
+        if self.paint_rule == PaintRule.GroupByClass:
+            self._paint_mem[cell.classname] = _rand_index;
+
+        return _rand_index;
 
     def _assign_color_index(self, palette_size=DEFAULT_PALETTE_SIZE):
         _row, _col = self.shape();
@@ -113,17 +168,34 @@ class CourseTable:
                 cell = self.get_cell(idx_row, idx_col);
 
                 if cell and not cell.is_labled():
-                    self._set_unique_index(idx_row, idx_col);
+                    cell.set_lable(
+                        self._get_unique_index(cell)
+                    );
 
     def prepare(self, palette=None):
+        for _row in self._table:
+            for _cell in _row:
+                if _cell:
+                    _cell.set_lable(None);
+
         if not palette:
-            palette = ColorPalette(palette_name="pastel_dreamland_adventure");
+            palette = ColorPalette();
         self.palette = palette;
 
+        match questionary.confirm(
+            "Paint the same class with the same color?",
+            default=True
+        ).ask():
+            case True:
+                self.paint_rule = PaintRule.GroupByClass;
+                self._paint_mem = dict();
+            case False:
+                self.paint_rule = PaintRule.Random;
+
+    def export(self, filename):
         # Set index based on palette size
         self._assign_color_index(palette_size=len(self.palette.get_palette()));
 
-    def export(self, filename):
         tx = TimetableExcel(self, filename);
         tx.build_with_palette(self.palette);
 

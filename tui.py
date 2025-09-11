@@ -1,4 +1,4 @@
-from src.lib import ColorPalette, CourseTable, IGNORE_WEEKEND;
+from src.lib import CourseTable, IGNORE_WEEKEND;
 from tui_utils import (
     check_schedule_download,
     get_schedule_filepath,
@@ -15,20 +15,17 @@ check_schedule_download();
 
 i_filepath = get_schedule_filepath();
 i_filename = i_filepath.name.split('.')[0];
-
 o_filepath = get_output_filepath();
-
 formats = get_output_formats();
+
+ct = CourseTable(i_filepath);
 
 _re_run = True;
 while _re_run:
     _xlsx_path = o_filepath / f"{i_filename}.xlsx";
     _png_path  = o_filepath / f"{i_filename}.png";
 
-
-    palette = ColorPalette();
-    ct = CourseTable(i_filepath);
-    ct.prepare(palette=palette);
+    ct.prepare();
     ct.export(_xlsx_path);
 
     if "png" in formats:

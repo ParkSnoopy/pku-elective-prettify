@@ -22,6 +22,9 @@ class CourseCell:
         and self._col == rhs._col
         );
 
+    def partial_eq(self, rhs):
+        return self.classname == rhs.classname;
+
     def _add_post_append_cell(self, name_ex, freq_raw, time_raw, classroom_raw, course_table=None):
         # _name_ex='习题课', _freq='每周', _time='周二10-11', _classroom='二教315、三教308、二教317'
         # self.classname, self.classroom, self.note, self.frequency, self.examinfo
@@ -47,10 +50,10 @@ class CourseCell:
                 CN2EN_NUM_MAP[
                     _col_raw
                     .replace('周', "")
-                ]
+                ] -1
             );
             _row_0, _row_1 = (
-                int(i) for i in _row_raw.split('-')
+                int(i)-1 for i in _row_raw.split('-')
             );
 
             for _row in range(_row_0, _row_1+1):
@@ -96,7 +99,7 @@ class CourseCell:
         # [ classname, classroom, note, weekly_or_biweekly, examinfo, (MAYBE etc[...]) ]
         #
 
-        self.classname, self.classroom, self.note, self.frequency, self.examinfo = _elems[:5];
+        self.classname, self.classroom, self.note, self.frequency, self.examinfo = filter(lambda s: s.strip(), _elems[:5]);
 
         # Strip `Note: ` itself
         self.note = self.note.replace("备注：", "").strip();
@@ -138,13 +141,14 @@ class CourseCell:
         self._lable = n;
 
     def get_lable(self) -> int:
+        # **SAFETY**
+        # LABLE CAN BE `0`
+        # Which can lead to "bool(CourseCell.get_lable()) == True"
+        # **MUST** use `is_labled()`
         return self._lable;
 
     def is_labled(self) -> bool:
-        return bool(self._lable);
+        return self._lable is not None;
 
     def __repr__(self) -> str:
-        return self._repr_with_lable();
-
-    def _repr_with_lable(self) -> str:
-        return f"\t<({self._row}, {self._col}), {self.classname[:]}, {self.classroom}>"
+        return f"<({self._row}, {self._col}), {self.classname[:]}, {self.classroom}, Color={self._lable}>";
