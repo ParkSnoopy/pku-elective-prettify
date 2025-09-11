@@ -9,4 +9,5 @@
 ---
 ## If something is weird:
 - Export to `.xlsx` format and fix it yourself
-- Report your schedule at [ISSUE](https://github.com/ParkSnoopy/pku-elective-prettify/issues)
+- Report your schedule at [ISSUE](https://github.com/ParkSnoopy/pku-elective-prettify/issues/new)
+
