@@ -115,7 +115,7 @@ class CourseTable:
                 if cell and not cell.is_labled():
                     self._set_unique_index(idx_row, idx_col);
 
-    def export(self, filename, palette=None):
+    def prepare(self, palette=None):
         if not palette:
             palette = ColorPalette(palette_name="pastel_dreamland_adventure");
         self.palette = palette;
@@ -123,6 +123,7 @@ class CourseTable:
         # Set index based on palette size
         self._assign_color_index(palette_size=len(self.palette.get_palette()));
 
+    def export(self, filename):
         tx = TimetableExcel(self, filename);
         tx.build_with_palette(self.palette);
 

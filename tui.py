@@ -1,64 +1,57 @@
 from src.lib import ColorPalette, CourseTable, IGNORE_WEEKEND;
+from tui_utils import (
+    check_schedule_download,
+    get_schedule_filepath,
+    get_output_filepath,
+    get_output_formats,
+);
 
 import os;
 import questionary, excel3img;
-from pathlib import Path;
-
-DOWNLOAD_PATH = Path.home() / "Downloads";
-SCHEDULE_FILENAME = "schedule.xls";
-#WEBDRIVER_GRACE_TIME = 20;
 
 
 
-if not os.path.exists(DOWNLOAD_PATH / SCHEDULE_FILENAME):
-    _break = True;
+check_schedule_download();
 
-    if questionary.confirm(
-        f"Did you download `{SCHEDULE_FILENAME}` file",
-        default=True,
-    ).ask():
-        _break = False;
+i_filepath = get_schedule_filepath();
+i_filename = i_filepath.name.split('.')[0];
 
-    if not _break:
-        ...
-    else:
-        raise Exception(f"You must download `{SCHEDULE_FILENAME}` from `elective.pku.edu.cn` first.");
+o_filepath = get_output_filepath();
 
-        raise Exception("unreachable!();");
-
-
-input_filepath = questionary.path(
-    f"Choose downloaded `{SCHEDULE_FILENAME}` file",
-    default=str( DOWNLOAD_PATH / SCHEDULE_FILENAME ),
-).ask();
-input_filename = '.'.join(
-    Path(input_filepath)
-    .name
-    .split('.')[0]
-);
-
-output_filepath = f"./output/{input_filename}.xlsx";
-output_filepath_png = output_filepath + ".png";
+formats = get_output_formats();
 
 _re_run = True;
 while _re_run:
+    _xlsx_path = o_filepath / f"{i_filename}.xlsx";
+    _png_path  = o_filepath / f"{i_filename}.png";
+
+
     palette = ColorPalette();
-    ct = CourseTable(input_filepath);
-    ct.export(output_filepath, palette=palette);
+    ct = CourseTable(i_filepath);
+    ct.prepare(palette=palette);
+    ct.export(_xlsx_path);
 
-    excel3img.export_img(output_filepath, output_filepath_png, "Timetable", 
-        "A1:F25" if IGNORE_WEEKEND else "A1:H25"
-    );
+    if "png" in formats:
+        if "nt" != os.name.lower():
+            print("  [ ERR ] Export to PNG is only supported on Windows.");
+            break;
 
-    if questionary.confirm(
-        "Open resulted PNG file",
-        default=True,
-    ).ask():
-        #import subprocess;
-        #subprocess.Popen(["start", f"{output_filepath_png.replace("/", "\\")}"]);
-        os.startfile(f"{output_filepath_png.replace("/", "\\")}");
+        excel3img.export_img(str(_xlsx_path), str(_png_path), "Timetable", 
+            "A1:F25" if IGNORE_WEEKEND else "A1:H25"
+        );
+
+        if questionary.confirm(
+            "Check for generated PNG file",
+            default=True,
+        ).ask():
+            os.startfile("{}".format(str(_png_path).replace("/", "\\")));
+
+    if "xlsx" not in formats:
+        os.remove(_xlsx_path);
 
     _re_run = questionary.confirm(
         "Re-Run to generate a new one",
         default=False,
     ).ask();
+
+    print();
