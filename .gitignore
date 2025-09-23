@@ -14,6 +14,7 @@ wheels/
 *.dist/
 *.onefile-build/
 *.exe
+output/
 
 # Private files
 assets.build/
