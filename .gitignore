@@ -3,13 +3,17 @@ __pycache__/
 *.py[oc]
 build/
 dist/
-*.build/
-*.dist/
 wheels/
 *.egg-info
 
 # Virtual environments
 .venv
+
+# Nuitka-generated files
+*.build/
+*.dist/
+*.onefile-build/
+*.exe
 
 # Private files
 assets.build/
