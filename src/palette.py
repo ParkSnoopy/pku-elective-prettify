@@ -2,7 +2,7 @@ import xlsxwriter, json, questionary;
 
 from .consts import (
     HEX_LOOP, LIGHTER_CYCLE,
-);
+)
 
 
 
@@ -33,14 +33,14 @@ class ColorPalette:
     def pick_by_lable(self, index: int) -> xlsxwriter.color.Color:
         return xlsxwriter.color.Color(
             self.get_palette()[index]
-        );
+        )
 
     def pick_by_lable_light(self, index: int) -> xlsxwriter.color.Color:
-        _color_hex: str = self.get_palette()[index].upper();
+        _color_hex: str = self.get_palette()[index].upper()
 
         for _ in range(LIGHTER_CYCLE):
-            _color_hex = "".join(HEX_LOOP[_single_hex] for _single_hex in _color_hex);
+            _color_hex = "".join(HEX_LOOP[_single_hex] for _single_hex in _color_hex)
 
         return xlsxwriter.color.Color(
             _color_hex
-        );
+        )

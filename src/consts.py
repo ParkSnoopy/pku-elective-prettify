@@ -1,11 +1,11 @@
-from pathlib import Path;
+from pathlib import Path
 
 
 
-DEFAULT_PALETTE_SIZE = 5;
-LIGHTER_CYCLE = 2;
+DEFAULT_PALETTE_SIZE = 5
+LIGHTER_CYCLE = 2
 
-IGNORE_WEEKEND = True;
+IGNORE_WEEKEND = True
 EN2CN_NUM_MAP = {
     1: "一",
     2: "二",
@@ -19,10 +19,10 @@ EN2CN_NUM_MAP = {
     10: "十",
     11: "十一",
     12: "十二",
-};
+}
 CN2EN_NUM_MAP = {
     v: k for k, v in EN2CN_NUM_MAP.items()
-};
+}
 CLASS_TIME_MAP = {
     1 : "08:00 ~ 08:50",
     2 : "09:00 ~ 09:50",
@@ -36,10 +36,10 @@ CLASS_TIME_MAP = {
     10: "18:40 ~ 19:30",
     11: "19:40 ~ 20:30",
     12: "20:40 ~ 21:30",
-};
+}
 
-_hex_loop = "0123456789ABCDEF";
+_hex_loop = "0123456789ABCDEF"
 HEX_LOOP = {
     _hex_loop[i]: _hex_loop[i+1] if i < len(_hex_loop)-1 else _hex_loop[i] for i,v in enumerate(_hex_loop)
-};
-HEX_LOOP.update({"#":"#"});
+}
+HEX_LOOP.update({"#":"#"})
