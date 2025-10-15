@@ -1,4 +1,4 @@
-from src.lib import CourseTable, IGNORE_WEEKEND;
+from src.lib import CourseTable, GenerateOptions, IGNORE_WEEKEND
 from tui_utils import (
     check_schedule_download,
     get_schedule_filepath,

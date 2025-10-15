@@ -3,3 +3,4 @@ from .consts import (
 )
 
 from .table import CourseTable
+from .options import GenerateOptions

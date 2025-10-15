@@ -4,15 +4,12 @@ from .consts import (
     IGNORE_WEEKEND, DEFAULT_PALETTE_SIZE,
 )
 
-from .palette import ColorPalette;
+from .palette import ColorPalette, PaintRule
 from .cell import CourseCell
 from .excel import TimetableExcel
+from .options import GenerateOptions
 
 
-
-class PaintRule:
-    Random = 200;
-    GroupByClass = 300;
 
 class CourseTable:
     def __init__(self, filename):
@@ -92,7 +89,7 @@ class CourseTable:
 
     def _get_unique_index(self, cell: CourseCell, palette_size=DEFAULT_PALETTE_SIZE) -> int:
         if (
-            self.paint_rule == PaintRule.GroupByClass and
+            self.options.paint_rule == PaintRule.GroupByClass and
             cell.classname in self._paint_mem
         ):
             return self._paint_mem[cell.classname]
@@ -105,7 +102,7 @@ class CourseTable:
 
             if _d == "left" or _d == "right":
                 if (
-                    self.paint_rule == PaintRule.GroupByClass and
+                    self.options.paint_rule == PaintRule.GroupByClass and
                     _neighbor.classname in self._paint_mem
                 ):
                     _overlaps.add( self._paint_mem[_neighbor.classname] )
@@ -124,7 +121,7 @@ class CourseTable:
         _rand_index = random.choice(_indexes)
 
         # If `group_by_class`, following same class will painted with same color
-        if self.paint_rule == PaintRule.GroupByClass:
+        if self.options.paint_rule == PaintRule.GroupByClass:
             self._paint_mem[cell.classname] = _rand_index
 
         return _rand_index
@@ -139,34 +136,30 @@ class CourseTable:
                 if cell and not cell.is_labled():
                     cell.set_lable(
                         self._get_unique_index(cell)
-                    );
+                    )
 
-    def prepare(self, palette=None):
+    options = None
+    def _init(self):
+        if self.options is None:
+            self.options = GenerateOptions()
+        self._paint_mem = dict()
+
+    def prepare(self, options=None):
+        self._init()
+
+        self.options = options if options is not None else self.options
+
         for _row in self._table:
             for _cell in _row:
                 if _cell:
-                    _cell.set_lable(None);
-
-        if not palette:
-            palette = ColorPalette();
-        self.palette = palette;
-
-        match questionary.confirm(
-            "Paint the same class with the same color?",
-            default=True
-        ).ask():
-            case True:
-                self.paint_rule = PaintRule.GroupByClass;
-                self._paint_mem = dict();
-            case False:
-                self.paint_rule = PaintRule.Random;
+                    _cell.set_lable(None)
 
     def export(self, filename):
         # Set index based on palette size
-        self._assign_color_index(palette_size=len(self.palette.get_palette()));
+        self._assign_color_index(palette_size=len(self.options.palette.get_palette()))
 
-        tx = TimetableExcel(self, filename);
-        tx.build_with_palette(self.palette);
+        tx = TimetableExcel(self, filename)
+        tx.build_with_palette(self.options.palette)
 
     def __repr__(self) -> str:
         return "\n".join(( "\t".join(( str(elem) for elem in row )) for row in self._table ))

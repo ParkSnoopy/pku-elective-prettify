@@ -1,4 +1,4 @@
-import xlsxwriter, json, questionary;
+import xlsxwriter
 
 from .consts import (
     HEX_LOOP, LIGHTER_CYCLE,
@@ -6,29 +6,16 @@ from .consts import (
 
 
 
+class PaintRule:
+    Random = 200
+    GroupByClass = 300
+
 class ColorPalette:
-    def __init__(self, palette_name=None):
-        _jsonpath = questionary.path(
-            "Select `palette.json` to use",
-            default="./palette.json",
-        ).ask();
-
-        with open(_jsonpath, "r") as jsonfile:
-            self._full_palette = json.load(jsonfile);
-
-        if not palette_name:
-            palette_name = self._choose_palette_by_user();
-        self._name = palette_name;
-
-    def _choose_palette_by_user(self) -> str:
-        return questionary.select(
-            "Choose a palette to use",
-            choices=self._full_palette.keys(),
-        ).ask();
+    def __init__(self, palette:dict):
+        self.palette = palette
 
     def get_palette(self) -> dict:
-        # Raise error when palette name not exists
-        return self._full_palette[self._name];
+        return self.palette
 
     def pick_by_lable(self, index: int) -> xlsxwriter.color.Color:
         return xlsxwriter.color.Color(
