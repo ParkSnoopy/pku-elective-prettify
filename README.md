@@ -6,7 +6,7 @@
 ## How to use (from source)
 - requirement: `uv`
 ```sh
-uv run tui.py
+uv run cli.py
 ```
 
 ## How to use (from release)
