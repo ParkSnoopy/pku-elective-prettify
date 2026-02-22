@@ -5,8 +5,9 @@ description = "Make flat `schedule.xls` into beautiful format"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "excel3img>=1.5",
+    "pillow>=12.1",
     "questionary>=2.1",
+    "spire-xls-free>=14.12",
     "xlrd>=2.0",
     "xlsxwriter>=3.2",
 ]

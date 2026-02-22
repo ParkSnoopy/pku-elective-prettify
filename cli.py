@@ -4,10 +4,12 @@ from cli_utils import (
     get_schedule_filepath,
     get_output_filepath,
     get_output_formats,
+    save_png,
 )
 
 import os
-import questionary, excel3img
+import questionary
+# import excel3img
 
 
 
@@ -33,8 +35,9 @@ while _re_run:
             print("  [ ERR ] Export to PNG is only supported on Windows.")
             break
 
-        excel3img.export_img(str(_xlsx_path), str(_png_path), "Timetable", 
-            "A1:F25" if IGNORE_WEEKEND else "A1:H25"
+        save_png(
+            xlsx_path=_xlsx_path,
+            png_path=_png_path,
         )
 
         if questionary.confirm(
