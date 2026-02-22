@@ -41,7 +41,7 @@ class TimetableExcel:
         self.CellFormats.Empty = ExcelFormatFactory(self.wb)
         self.CellFormats.CourseIndex = ExcelFormatFactory(self.wb, **{
             "font_name": "SimHei",
-            "font_size": 11,
+            "font_size": 10,
             "bold": False,
             "align": "center",
             "valign": "vcenter",
@@ -52,7 +52,7 @@ class TimetableExcel:
         })
         self.CellFormats.CourseColumn = ExcelFormatFactory(self.wb, **{
             "font_name": "SimHei",
-            "font_size": 11,
+            "font_size": 10,
             "bold": False,
             "align": "center",
             "valign": "vcenter",
@@ -63,7 +63,7 @@ class TimetableExcel:
         })
         self.CellFormats.CourseTitle = ExcelFormatFactory(self.wb, **{
             "font_name": "SimHei",
-            "font_size": 11,
+            "font_size": 9.5,
             "bold": False,
             "align": "left",
             "valign": "top",
@@ -79,7 +79,7 @@ class TimetableExcel:
         })
         self.CellFormats.CourseContent = ExcelFormatFactory(self.wb, **{
             "font_name": "SimHei",
-            "font_size": 8,
+            "font_size": 7,
             "bold": False,
             "align": "left",
             "valign": "top",
