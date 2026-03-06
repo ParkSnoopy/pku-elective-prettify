@@ -3,10 +3,17 @@
   This project is also aimed primarily at Windows.
 
 
-## How to use (from source)
-- requirement: `uv`
+## How to use (from source, `uv`)
 ```sh
 uv run cli.py
+```
+
+## How to use (from source, `pip`)
+- Windows
+```sh
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python cli.py
 ```
 
 ## How to use (from release)
