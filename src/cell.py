@@ -116,6 +116,8 @@ class CourseCell:
                 is_success = False
                 try: name_ex, freq, time, classroom = self._xitike_handler_01(self.note); is_success = True
                 except Exception as exc: exceptions.append(exc)
+                try: name_ex, freq, time, classroom = self._xitike_handler_02(self.note); is_success = True
+                except Exception as exc: exceptions.append(exc)
                 if not is_success: raise Exception(" ".join(f"[ ERR{idx:02d} ] {exc}"for idx, exc in enumerate(exceptions)))
             except Exception as exc:
                 print(f"[  ERR  ] {exc}")
@@ -153,6 +155,34 @@ class CourseCell:
             for elem in note.split()
             # ["每", "周二10-11", "二教315、三教308、二教317"]
         ]   # ["每周", "周二10-11", "二教315、三教308、二教317"]
+        name_ex, freq, time, classroom = " 习题课", *note
+
+        return name_ex, freq, time, classroom
+
+    @staticmethod
+    def _xitike_handler_02(note):
+        # _xitike_handler_02:
+        #   习题课每周二10-11节，教室：一教303、二教317、一教302
+
+        note = (
+            note
+            .replace("习题课", "")     # 每周二10-11节，教室：一教303、二教317、一教302
+            .replace(' ', "")
+            .replace('：', "")
+            .replace('，', "")         # 每周二10-11节教室一教303、二教317、一教302
+            .replace("节", "")
+            .replace("上课", "")
+            .replace("时间", ' ')
+            .replace("教室", ' ')
+            .strip()                  # 每周二10-11 一教303、二教317、一教302
+        )
+
+        insert_space = re.search("[每单双]", note).span()[1] # add space BEHIND frequency
+        note = note[:insert_space] + ' ' + note[insert_space:]
+        note = [
+            f"{elem}周" if len(elem) <= 1 else elem
+            for elem in note.split()
+        ]
         name_ex, freq, time, classroom = " 习题课", *note
 
         return name_ex, freq, time, classroom
