@@ -1,6 +1,6 @@
 # pku-elective-prettify
 - Since most packages related to `excel` only support Windows,
-  This project is also aimed primarily at Windows.
+  This project is also aimed primarily for Windows.
 
 
 ## How to use (from source, `uv`)
@@ -9,7 +9,6 @@ uv run cli.py
 ```
 
 ## How to use (from source, `pip`)
-- Windows
 ```sh
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
@@ -26,4 +25,5 @@ python -m venv .venv
 ## If something is weird:
 - Export to `.xlsx` format and fix it yourself
 - Report your schedule at [ISSUE](https://github.com/ParkSnoopy/pku-elective-prettify/issues/new)
+
 
