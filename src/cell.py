@@ -94,6 +94,7 @@ class CourseCell:
             _elem = _elems.pop(1)
             _elems[0] = ( _elems[0] + " (" + _elem + ")" ).strip()
 
+        print(f"[ DEBUG ]\n  '{value}'\n  ->\n  '{_elems}'")
         # _elems:
         #   0          1          2     3                   4          5...
         # [ classname, classroom, note, weekly_or_biweekly, examinfo, (MAYBE etc[...]) ]
