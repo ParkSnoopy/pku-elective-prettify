@@ -1,1 +1,0 @@
-uv pip compile pyproject.toml --no-deps --format requirements.txt -o requirements.txt
