@@ -105,38 +105,57 @@ class CourseCell:
         # Strip `Note: ` itself
         self.note = self.note.replace("备注：", "").strip()
 
-        # In case class note is like: 习题课上课时间：每周二10-11，上课教室：二教315、三教308、二教317
-        # 习题课 每周 周二10-11 二教315、三教308、二教317
         if "习题课" in self.note:
-            _note = self.note.replace("习题课", "").strip()
-            _note = (
-                _note
-                .replace(' ', "")
-                .replace('：', "")
-                .replace('，', "")
-                .replace("上课时间", ' ')
-                .replace("上课教室", ' ')
-                .strip()
-            )
+            '''
+            method `xitike_handler` return example:
 
-            _insert_space = re.search("[每单双]", _note).span()[1] # add space BEHIND frequency
-            _note = _note[:_insert_space] + ' ' + _note[_insert_space:]
-            _note = [
-                f"{_elem}周" if len(_elem) <= 1 else _elem
-                for _elem in _note.split()
-            ]
-            _name_ex, _freq, _time, _classroom = "习题课", *_note
-
-            self._add_post_append_cell(_name_ex, _freq, _time, _classroom, course_table=course_table)
-
-            # In case `习题课`, `note` is processed.
-            self.note = ""
+            ["习题课", "每周", "周二10-11", "二教315、三教308、二教317"]
+            '''
+            try:
+                exceptions = list()
+                is_success = False
+                try: name_ex, freq, time, classroom = self._xitike_handler_01(self.note); is_success = True
+                except Exception as exc: exceptions.append(exc)
+                if not is_success: raise Exception(" ".join(f"[ ERR{idx:02d} ] {exc}"for idx, exc in enumerate(exceptions)))
+            except Exception as exc:
+                print(f"[  ERR  ] {exc}")
+            else:
+                # In case `习题课`, `note` is processed.
+                self._add_post_append_cell(name_ex, freq, time, classroom, course_table=course_table)
+                self.note = ""
 
         # Handle unexpected Notes
         if len(_elems) > 5:
             if self.note:
                 self.note += '；'
             self.note += '；'.join(_elems[5:])
+
+    @staticmethod
+    def _xitike_handler_01(note):
+        # _xitike_handler_01:
+        #   习题课上课时间：每周二10-11，上课教室：二教315、三教308、二教317
+
+        note = (
+            note
+            .replace("习题课", "")       # 上课时间：每周二10-11，上课教室：二教315、三教308、二教317
+            .replace(' ', "")
+            .replace('：', "")
+            .replace('，', "")          # 上课时间每周二10-11上课教室二教315、三教308、二教317
+            .replace("上课时间", ' ')
+            .replace("上课教室", ' ')
+            .strip()                    # 每周二10-11 二教315、三教308、二教317
+        )
+
+        insert_space = re.search("[每单双]", note).span()[1] # add space BEHIND frequency
+        note = note[:insert_space] + ' ' + note[insert_space:]
+        note = [
+            f"{elem}周" if len(elem) <= 1 else elem
+            for elem in note.split()
+            # ["每", "周二10-11", "二教315、三教308、二教317"]
+        ]   # ["每周", "周二10-11", "二教315、三教308、二教317"]
+        name_ex, freq, time, classroom = " 习题课", *note
+
+        return name_ex, freq, time, classroom
 
     def set_lable(self, n: int):
         self._lable = n
