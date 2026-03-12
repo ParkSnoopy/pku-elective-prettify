@@ -4,12 +4,12 @@
 
 
 ## How to use (from source, `uv`)
-```sh
+```bat
 uv run cli.py
 ```
 
 ## How to use (from source, `pip`)
-```sh
+```bat
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python cli.py
