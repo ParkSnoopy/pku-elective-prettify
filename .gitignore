@@ -1,24 +1,9 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
-# Nuitka-generated files
-nuitka-crash-report.xml
-*.build/
-*.dist/
-*.onefile-build/
-*.exe
-output/
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp
 
 # Private files
-assets.build/
 *.xls
 *.xlsx
 *.png
