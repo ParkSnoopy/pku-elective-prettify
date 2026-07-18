@@ -7,3 +7,8 @@ Thumbs.db
 *.xls
 *.xlsx
 *.png
+.hermes*
+CONTEXT.md
+CHANGELOG.md
+Design*
+

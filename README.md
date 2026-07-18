@@ -1,35 +1,20 @@
-# pku-elective-prettify
+# PKU Elective Prettify
 
-Turn the `schedule.xls` exported from [elective.pku.edu.cn](https://elective.pku.edu.cn) into a beautiful timetable.
+Turn the `schedule.xls` exported from [elective.pku.edu.cn](https://elective.pku.edu.cn) into a polished timetable.
 
-Pure client-side — no server, no install.
+### [Hosted on Github Pages](https://parksnoopy-undergraduate.github.io/elective/)
 
 ## Usage
 
-1. Download `schedule.xls` from [elective.pku.edu.cn](https://elective.pku.edu.cn)
-2. Open `index.html` in a browser (or deploy to any static host)
-3. Select file → choose palette → generate
+1. Download `schedule.xls` from [elective.pku.edu.cn](https://elective.pku.edu.cn).
+2. Visit the [page](https://parksnoopy-undergraduate.github.io/elective/).
+3. Select the downloaded file, choose a palette, and generate the timetable.
+4. Click a timetable cell to edit its content or typography when needed.
+5. Export the result as PNG or XLSX.
 
-## Features
+## Support
 
-- Parse `schedule.xls` timetable files
-- Auto-handle 习题课 and other special cells
-- Multiple built-in palettes; custom `palette.json` supported
-- Same class same color (toggleable)
-- One-click regenerate (re-roll colors)
+If the generated timetable looks wrong:
 
-## Project structure
-
-```
-index.html                  Entry page
-static/css/style.css        Styles
-static/js/app.js            App logic (parse, color, render)
-static/js/xlsx.full.min.js  SheetJS XLSX parser (vendored)
-palette.json                Built-in palettes (also a custom palette example)
-```
-
----
-
-If something looks wrong:
-- Check the raw `schedule.xls` data
-- File an [ISSUE](https://github.com/ParkSnoopy/pku-elective-prettify/issues/new)
+1. Check whether the source information is correct in `schedule.xls`.
+2. [Report the issue](https://github.com/ParkSnoopy/pku-elective-prettify/issues/new) with a description of the expected and actual result.

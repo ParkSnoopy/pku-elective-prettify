@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PKU Elective Prettify</title>
+  <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+  <!-- Top nav -->
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <span class="identity-mark">●</span>
+      <span class="nav-title">PKU Elective Prettify</span>
+    </div>
+  </nav>
+
+  <!-- Hero band -->
+  <header class="hero-band">
+    <div class="container">
+      <h1>PKU Elective Prettify</h1>
+      <p class="subtitle">将 elective.pku.edu.cn 的 schedule.xls 变成好看的课表</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Controls card -->
+    <section class="controls-card">
+      <h2 class="section-heading">Options</h2>
+
+      <div class="control-grid">
+        <div class="control-group">
+          <label for="file-input">Select schedule.xls</label>
+          <input type="file" id="file-input" accept=".xls,.xlsx">
+          <span id="file-info" class="file-info"></span>
+        </div>
+
+        <div class="control-group">
+          <label>Color palette</label>
+          <div class="palette-dropdown" id="palette-dropdown">
+            <button class="palette-selected" id="palette-toggle" type="button">
+              <span class="palette-swatches" id="palette-current-swatches"></span>
+              <span class="palette-name" id="palette-current-name">Loading…</span>
+              <span class="palette-caret">▾</span>
+            </button>
+            <div class="palette-menu" id="palette-menu" hidden></div>
+          </div>
+          <label class="checkbox-label">
+            <input type="checkbox" id="group-by-class" checked>
+            <span>Same class, same color</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Color editor -->
+      <div class="color-editor" id="color-editor"></div>
+
+      <!-- Generate button -->
+      <div class="generate-row">
+        <button id="generate-btn" class="button-primary" disabled>Generate</button>
+      </div>
+    </section>
+
+    <!-- Output -->
+    <section class="output-section">
+      <div id="status" class="status"></div>
+      <div id="export-row" class="export-row" hidden>
+        <button id="export-png-btn" class="button-secondary">Export PNG</button>
+        <button id="export-xlsx-btn" class="button-secondary">Export XLSX</button>
+      </div>
+      <div id="table-container" class="table-container"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span class="identity-mark">●</span>
+      <span class="footer-text">PKU Elective Prettify</span>
+    </div>
+  </footer>
+
+  <script src="static/js/xlsx.full.min.js"></script>
+  <script src="static/js/html2canvas.min.js"></script>
+  <script src="static/js/app.js"></script>
+</body>
+</html>

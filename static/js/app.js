@@ -1,0 +1,1198 @@
+"use strict";
+
+// ─── Constants ──────────────────────────────────────────────
+
+const IGNORE_WEEKEND = true;
+const LIGHTER_CYCLE = 2;
+const DEFAULT_PALETTE_SIZE = 5;
+
+const CLASS_TIME_MAP = {
+  1: "08:00", 2: "09:00", 3: "10:10",
+  4: "11:10", 5: "13:00", 6: "14:00",
+  7: "15:10", 8: "16:10", 9: "17:10",
+  10: "18:40", 11: "19:40", 12: "20:40",
+};
+
+const EN2CN_NUM = ["一","二","三","四","五","六","日"];
+const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};
+
+const DEFAULT_FONT_STYLE = "mono";
+const DEFAULT_FONT_FAMILY = "maple";
+const DEFAULT_FONT_STYLE_BY_KIND = { corner: "mono", header: "mono", time: "serif", course: "mono" };
+const DEFAULT_FONT_FAMILY_BY_KIND = { corner: "maple", header: "maple", time: "roboto", course: "maple" };
+const DEFAULT_FONT_SIZE_BY_KIND = { corner: 16, header: 20, time: 30, course: 18 };
+
+const FONT_STYLE_OPTIONS = [
+  ["Serif", "serif"],
+  ["Sans", "sans"],
+  ["Mono", "mono"],
+];
+
+const FONT_FAMILY_OPTIONS = {
+  serif: [
+    ["Noto Serif", "noto", "'Noto Serif CJK SC', serif"],
+    ["Roboto Serif", "roboto", "'Roboto Serif', 'Noto Serif CJK SC', serif"],
+  ],
+  sans: [
+    ["Noto Sans", "noto", "'Noto Sans CJK SC', sans-serif"],
+    ["Roboto", "roboto", "'Roboto', 'Noto Sans CJK SC', sans-serif"],
+  ],
+  mono: [
+    ["Maple Mono", "maple", "'Maple Mono', 'Noto Sans CJK SC', monospace"],
+    ["Noto Sans Mono", "noto", "'Noto Sans Mono CJK SC', monospace"],
+    ["Roboto Mono", "roboto", "'Roboto Mono', 'Noto Sans Mono CJK SC', monospace"],
+  ],
+};
+
+function getFontFamilyOptions(style) {
+  return FONT_FAMILY_OPTIONS[style] || FONT_FAMILY_OPTIONS[DEFAULT_FONT_STYLE];
+}
+
+function resolveFontFamily(style, familyKey) {
+  const options = getFontFamilyOptions(style);
+  return (options.find(([, key]) => key === familyKey) || options[0])[2];
+}
+
+const HEX_CHARS = "0123456789ABCDEF";
+const HEX_LOOP = {};
+for (let i = 0; i < HEX_CHARS.length; i++) {
+  HEX_LOOP[HEX_CHARS[i]] = HEX_CHARS[Math.min(i + 1, HEX_CHARS.length - 1)];
+}
+HEX_LOOP["#"] = "#";
+
+// ─── Default palettes (from palette.json) ───────────────────
+
+const DEFAULT_PALETTES = {
+  "default Colorful": ["#79adac","#beadf2","#a0c8f2","#adf7b6","#ffea99"],
+  "Pastel Dreamland Adventure": ["#cdb4db","#ffc8dd","#ffafcc","#bde0fe","#a2d2ff"],
+  "Pastel Dreams": ["#809bce","#95b8d1","#b8e0d2","#d6eadf","#eac4d5"],
+  "Golden Summer Fields": ["#ccd5ae","#e9edc9","#fefae0","#faedcd","#d4a373"],
+  "Spring Delight": ["#79addc","#ffc09f","#ffee93","#fcf5c7","#adf7b6"],
+  "Passtel colorss": ["#f1c494","#faf3a5","#9df79c","#89d1fb","#cfaaf6"],
+  "Pastel Grass": ["#b7e4ba","#95d59d","#74c691","#52b776","#40915d"],
+  "Henggarae - Hana": ["#b8d6ec","#f6c7b7","#d6c8e8","#f9f3e3","#cfcbc5"],
+  "SaltwaterTaffy": ["#f0ed5f","#f3c6fc","#9de0e7","#edbb7d","#b5c4fa"],
+  "ego death at the bachelorette party": ["#ea7d72","#97851e","#3e5241","#2194c2","#b085de"],
+  "Dark Winter Pastel Blues": ["#abb9c2","#c6d6da","#a9c7ce","#c8dce9","#a3b6ba"],
+};
+
+const CUSTOM_KEY = "__custom__";
+
+// ─── Color helpers ──────────────────────────────────────────
+
+function lightenHex(hex, cycles = LIGHTER_CYCLE) {
+  let h = hex.toUpperCase().replace(/[^0-9A-F#]/g, "");
+  for (let c = 0; c < cycles; c++) {
+    h = h.split("").map(ch => HEX_LOOP[ch] || ch).join("");
+  }
+  return h;
+}
+
+function hexToRgba(hex, alpha = 1) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function isValidHex(s) {
+  return /^#[0-9A-Fa-f]{6}$/.test(s);
+}
+
+// ─── CourseCell ─────────────────────────────────────────────
+
+// Extract frequency token directly (每周/单周/双周). Anything else in the
+// same segment is returned as the remainder so callers can route it.
+function splitFrequencySegment(segment) {
+  const s = (segment || "").trim();
+  if (!s) return { frequency: "", remainder: "" };
+  const m = s.match(/每周|单周|双周/);
+  if (!m) return { frequency: "", remainder: s };
+  const frequency = m[0];
+  const remainder = (s.slice(0, m.index) + s.slice(m.index + frequency.length))
+    .replace(/^[；;，,\s]+/, "")
+    .replace(/[；;]+$/, "");
+  return { frequency, remainder };
+}
+
+class CourseCell {
+  constructor(row, col, upperValue, lowerValue, table, rawInit = false) {
+    this._label = null;
+    this._row = row;
+    this._col = col;
+    if (!rawInit) {
+      if (lowerValue !== undefined) {
+        this._processXlsxValue(upperValue, lowerValue, table);
+      } else {
+        this._processElectiveValue(upperValue, table);
+      }
+    }
+  }
+
+  get label() { return this._label; }
+  set label(v) { this._label = v; }
+  isLabeled() { return this._label !== null; }
+
+  // Parse 2-row xlsx format:
+  //   upper: " 课程名\n（教室，频率）"
+  //   lower: "考试时间：..." or "备注\n考试方式：..."
+  _processXlsxValue(upperValue, lowerValue, table) {
+    const upper = (upperValue || "").trim();
+    const lower = (lowerValue || "").trim();
+
+    this.classname = "";
+    this.classroom = "";
+    this.frequency = "";
+    this.note = "";
+    this.examinfo = "";
+
+    if (upper) {
+      const lines = upper.split("\n").map(s => s.trim()).filter(s => s);
+      this.classname = lines[0] || "";
+      if (lines.length > 1) {
+        // Parse （classroom，frequency）
+        const bracket = lines[1].replace(/[（()）]/g, "").trim();
+        const parts = bracket.split("，").map(s => s.trim());
+        this.classroom = parts[0] === "暂无上课教室数据" ? "暂无" : (parts[0] || "");
+        const { frequency, remainder } = splitFrequencySegment(parts[1] || "");
+        this.frequency = frequency;
+        if (remainder) this.examinfo = remainder;
+      }
+    }
+
+    if (lower) {
+      const lowerLines = lower.split("\n").map(s => s.trim()).filter(s => s);
+      for (const line of lowerLines) {
+        if (line.startsWith("考试时间") || line.startsWith("考试方式")) {
+          if (this.examinfo) this.examinfo += "；";
+          this.examinfo += line;
+        } else {
+          if (this.note) this.note += "；";
+          this.note += line;
+        }
+      }
+    }
+  }
+
+  // Legacy: parse old schedule.xls single-cell format
+  _processElectiveValue(value, table) {
+    let v = value.replace(/ /g, "");
+    const m = v.match(/周[每单双]/);
+    if (m) {
+      const idx = v.indexOf(m[0]) + m[0].length;
+      v = v.slice(0, idx) + " " + v.slice(idx);
+    }
+    v = v.replace(/[()（）]/g, " ");
+    let elems = v.split(" ").filter(s => s !== "");
+    while (elems.length > 1 && elems[1].length <= 1) {
+      const elem = elems.splice(1, 1)[0];
+      elems[0] = (elems[0] + " (" + elem + ")").trim();
+    }
+    this.classname = elems[0] || "";
+    this.classroom = elems[1] === "暂无上课教室数据" ? "暂无" : (elems[1] || "");
+    this.note = (elems[2] || "").replace("备注：", "").trim();
+    // Frequency slot often absorbs trailing exam info, e.g. "每周考试时间：..."
+    // or "每周考试方式：...". Extract frequency token directly; the remainder
+    // is exam info.
+    const { frequency, remainder } = splitFrequencySegment(elems[3] || "");
+    this.frequency = frequency;
+    let exam = (elems[4] || "").replace(/[；;]+$/, "");
+    if (remainder) {
+      exam = exam ? remainder + "；" + exam : remainder;
+    }
+    this.examinfo = exam;
+    if (this.note.includes("习题课")) {
+      try {
+        const result = this._parseXitike(this.note);
+        if (result) {
+          this._addPostAppendCell(table, " 习题课", result.freq, result.time, result.classroom);
+          this.note = "";
+        }
+      } catch (e) {
+        console.warn("[习题课] parse failed:", e);
+      }
+    }
+    if (elems.length > 5) {
+      if (this.note) this.note += "；";
+      this.note += elems.slice(5).join("；");
+    }
+  }
+
+  _parseXitike(note) {
+    try {
+      let n = note.replace("习题课","").replace(/ /g,"").replace(/：/g,"").replace(/，/g,"")
+        .replace("上课时间"," ").replace("上课教室"," ").trim();
+      const m = n.match(/[每单双]/);
+      if (!m) throw new Error("no freq");
+      const insert = m.index + 1;
+      n = n.slice(0, insert) + " " + n.slice(insert);
+      const parts = n.split(" ").filter(s => s !== "").map(e => e.length <= 1 ? e + "周" : e);
+      if (parts.length < 3) throw new Error("incomplete");
+      return { freq: parts[0], time: parts[1], classroom: parts[2] };
+    } catch (e1) {
+      let n = note.replace("习题课","").replace(/ /g,"").replace(/：/g,"").replace(/，/g,"")
+        .replace("节","").replace("上课","").replace("时间"," ").replace("教室"," ").trim();
+      const m = n.match(/[每单双]/);
+      if (!m) throw e1;
+      const insert = m.index + 1;
+      n = n.slice(0, insert) + " " + n.slice(insert);
+      const parts = n.split(" ").filter(s => s !== "").map(e => e.length <= 1 ? e + "周" : e);
+      if (parts.length < 3) throw e1;
+      return { freq: parts[0], time: parts[1], classroom: parts[2] };
+    }
+  }
+
+  _addPostAppendCell(table, nameEx, freqRaw, timeRaw, classroomRaw) {
+    const classname = this.classname + nameEx;
+    const classroom = classroomRaw.split("、")[0];
+    const m = timeRaw.match(/周./);
+    if (!m) return;
+    const sepIdx = m.index + m[0].length;
+    const colRaw = timeRaw.slice(0, sepIdx).replace("周", "");
+    const rowRaw = timeRaw.slice(sepIdx);
+    const col = CN2EN_NUM[colRaw] - 1;
+    const [r0, r1] = rowRaw.split("-").map(n => parseInt(n) - 1);
+    for (let row = r0; row <= r1; row++) {
+      const exists = table._postAppend.some(cc =>
+        cc.classname === classname && cc._row === row && cc._col === col
+      );
+      if (!exists) {
+        const cc = new CourseCell(row, col, null, undefined, null, true);
+        cc.classname = classname;
+        cc.classroom = classroom;
+        cc.frequency = freqRaw;
+        cc.examinfo = "";
+        cc.note = "";
+        table._postAppend.push(cc);
+      }
+    }
+  }
+}
+
+// ─── CourseTable ────────────────────────────────────────────
+
+class CourseTable {
+  constructor(ws) {
+    this._postAppend = [];
+    this._table = [];
+    this.options = null;
+    this._paintMem = {};
+    this._typography = {};
+
+    const nrows = ws.length;
+    const ncols = ws[0].length;
+    const colLimit = IGNORE_WEEKEND ? ncols - 3 : ncols - 1;
+
+    // Detect 2-row format: header row + paired rows (time label on odd, info on even)
+    // Check if row 1 has time label "第" and row 2 does not
+    const isTwoRow = nrows > 2 &&
+      String(ws[1][0] || "").includes("第") &&
+      !String(ws[2][0] || "").includes("第");
+
+    if (isTwoRow) {
+      // 2-row format: each period = 2 source rows (upper + lower)
+      // ws[0] = header, ws[1] = period 1 upper, ws[2] = period 1 lower, etc.
+      for (let period = 0; ; period++) {
+        const upperRow = 1 + period * 2;
+        const lowerRow = upperRow + 1;
+        if (upperRow >= nrows) break;
+
+        const row = [];
+        for (let c = 0; c < colLimit; c++) {
+          const srcCol = c + 1;
+          const upper = ws[upperRow][srcCol];
+          const lower = lowerRow < nrows ? ws[lowerRow][srcCol] : "";
+          if (!upper && !lower) { row.push(null); continue; }
+          const cc = new CourseCell(period, c, upper, lower, this);
+          row.push(cc);
+        }
+        this._table.push(row);
+      }
+    } else {
+      // Legacy: 1-row format (old schedule.xls)
+      for (let r = 0; r < nrows - 1; r++) {
+        const row = [];
+        for (let c = 0; c < colLimit; c++) {
+          const src = ws[r + 1][c + 1];
+          if (!src) { row.push(null); continue; }
+          const cc = new CourseCell(r, c, src, undefined, this);
+          row.push(cc);
+        }
+        this._table.push(row);
+      }
+    }
+
+    // Merge post-append cells
+    for (const cc of this._postAppend) {
+      if (this._table[cc._row] && cc._col < this._table[cc._row].length) {
+        this._table[cc._row][cc._col] = cc;
+      }
+    }
+  }
+
+  shape() { return [this._table.length, this._table[0].length]; }
+  getCell(r, c) { return this._table[r][c]; }
+
+  _typographyKey(kind, row, col) {
+    return kind;
+  }
+
+  getTypography(kind, row, col) {
+    return this._typography[this._typographyKey(kind)] || null;
+  }
+
+  setTypography(kind, row, col, typography) {
+    this._typography[this._typographyKey(kind)] = typography;
+  }
+
+  updateClassContent(classname, content) {
+    for (const row of this._table) {
+      for (const cell of row) {
+        if (cell && cell.classname === classname) {
+          Object.assign(cell, content);
+        }
+      }
+    }
+  }
+
+  _typographyStyle(kind, row, col) {
+    const typography = this.getTypography(kind, row, col);
+    if (!typography) return "";
+    return `--cell-font:${typography.fontFamily};--cell-font-size:${typography.fontSize}px;`;
+  }
+
+  getNeighbors(r, c) {
+    const [nr, nc] = this.shape();
+    const result = {};
+    if (c > 0) result.left = this.getCell(r, c - 1);
+    if (c < nc - 1) result.right = this.getCell(r, c + 1);
+    if (r > 0) result.top = this.getCell(r - 1, c);
+    if (r < nr - 1) result.bottom = this.getCell(r + 1, c);
+    return result;
+  }
+
+  _getUniqueIndex(cell, paletteSize) {
+    if (this.options.groupByClass && this._paintMem.hasOwnProperty(cell.classname)) {
+      return this._paintMem[cell.classname];
+    }
+    const overlaps = new Set();
+    const neighbors = this.getNeighbors(cell._row, cell._col);
+    for (const [dir, neighbor] of Object.entries(neighbors)) {
+      if (!neighbor) continue;
+      if (dir === "left" || dir === "right") {
+        if (this.options.groupByClass && this._paintMem.hasOwnProperty(neighbor.classname)) {
+          overlaps.add(this._paintMem[neighbor.classname]);
+        }
+        if (neighbor.isLabeled()) overlaps.add(neighbor.label);
+      } else {
+        if (cell.classname === neighbor.classname && neighbor.isLabeled()) {
+          return neighbor.label;
+        }
+        if (neighbor.isLabeled()) overlaps.add(neighbor.label);
+      }
+    }
+    const available = [];
+    for (let i = 0; i < paletteSize; i++) {
+      if (!overlaps.has(i)) available.push(i);
+    }
+    if (available.length === 0) return Math.floor(Math.random() * paletteSize);
+    const idx = available[Math.floor(Math.random() * available.length)];
+    if (this.options.groupByClass) {
+      this._paintMem[cell.classname] = idx;
+    }
+    return idx;
+  }
+
+  _assignColorIndices(paletteSize) {
+    const [rows, cols] = this.shape();
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const cell = this.getCell(r, c);
+        if (cell && !cell.isLabeled()) {
+          cell.label = this._getUniqueIndex(cell, paletteSize);
+        }
+      }
+    }
+  }
+
+  prepare(options) {
+    this.options = options;
+    this._paintMem = {};
+    for (const row of this._table) {
+      for (const cell of row) {
+        if (cell) cell.label = null;
+      }
+    }
+  }
+
+  render(palette) {
+    this._assignColorIndices(palette.length);
+    const [rowLen, colLen] = this.shape();
+
+    // Initial readable width. Browser-side fitting adjusts all course columns
+    // after content renders, using full table dimensions (header + index included).
+    const cellW = 180;
+
+    const html = [];
+
+    html.push('<table class="timetable">');
+    html.push(`<colgroup>`);
+    html.push('<col style="width:80px">');
+    for (let c = 0; c < colLen; c++) {
+      html.push(`<col style="width:${cellW}px">`);
+    }
+    html.push("</colgroup>");
+    html.push("<thead><tr>");
+    html.push(`<th class="corner editable-cell" data-kind="corner" style="${this._typographyStyle("corner")}"></th>`);
+    for (let c = 0; c < colLen; c++) {
+      html.push(`<th class="day-header editable-cell" data-kind="header" data-col="${c}" style="${this._typographyStyle("header", null, c)}">周${EN2CN_NUM[c]}</th>`);
+    }
+    html.push("</tr></thead><tbody>");
+
+    for (let r = 0; r < rowLen; r++) {
+      html.push("<tr>");
+      const period = r + 1;
+      const time = CLASS_TIME_MAP[period] || "";
+      html.push(
+        `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}"><span class="period">${period}</span>` +
+        `<span class="time-range">${time}</span></td>`
+      );
+      for (let c = 0; c < colLen; c++) {
+        const cell = this.getCell(r, c);
+        if (!cell) {
+          // Keep empty rows exactly as tall as a normal course cell:
+          // two primary lines plus the reserved two-line remain block.
+          const emptyInner = '<div class="classname empty-content" aria-hidden="true">&nbsp;' +
+            '<span class="classroom-text">&nbsp;</span></div>' +
+            '<div class="cell-remain empty-content" aria-hidden="true">&nbsp;</div>';
+          html.push(`<td class="cell empty editable-cell" data-kind="course" data-row="${r}" data-col="${c}" style="${this._typographyStyle("course", r, c)}">${emptyInner}</td>`);
+        } else {
+          const bgColor = palette[cell.label] || "#ffffff";
+          const lightBg = lightenHex(bgColor);
+          const upperBg = hexToRgba(bgColor, 0.85);
+          const lowerBg = hexToRgba(lightBg, 0.5);
+          const inverseClass = inverseFontColorIndexes.has(cell.label)
+            ? " inverse-font-color"
+            : "";
+
+          // Line 1: classname; line 2: （classroom，frequency）
+          let inner = `<div class="classname" style="background:${upperBg}">`;
+          inner += "&nbsp;" + escapeHtml(cell.classname);
+          if (cell.classroom || cell.frequency) {
+            const parts = [cell.classroom, cell.frequency].filter(s => s).join("，");
+            inner += `<span class="classroom-text">（${escapeHtml(parts)}）</span>`;
+          }
+          inner += "</div>";
+
+          // Build remaining info lines (frequency already shown in classroom line)
+          const remainLines = [];
+          if (cell.note) remainLines.push(escapeHtml(cell.note));
+          if (cell.examinfo) remainLines.push(escapeHtml(cell.examinfo));
+
+          inner += `<div class="cell-remain" style="background:${lowerBg}">`;
+          inner += remainLines.length > 0
+            ? remainLines.map(line => line.replace(/[；;]+$/, "")).join("；")
+            : "&nbsp;";
+          inner += `</div>`;
+
+          html.push(`<td class="cell has-data editable-cell${inverseClass}" data-kind="course" data-row="${r}" data-col="${c}" style="background:${lowerBg};${this._typographyStyle("course", r, c)}">${inner}</td>`);
+        }
+      }
+      html.push("</tr>");
+    }
+
+    html.push("</tbody></table>");
+    return html.join("");
+  }
+}
+
+// ─── Utils ──────────────────────────────────────────────────
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s || "";
+  return d.innerHTML;
+}
+
+async function waitForFonts() {
+  if (document.fonts?.ready) await document.fonts.ready;
+}
+
+function fitTableAspect(container, targetRatio = 1.15) {
+  const table = container.querySelector(".timetable");
+  if (!table) return;
+
+  table.style.transform = "none";
+  container.style.height = "";
+
+  const columns = table.querySelectorAll("col");
+  const courseColumns = Array.from(columns).slice(1);
+  if (courseColumns.length === 0) return;
+
+  const indexWidth = 80;
+  for (let pass = 0; pass < 4; pass++) {
+    const tableHeight = table.getBoundingClientRect().height;
+    const desiredCellWidth = Math.round(
+      (tableHeight * targetRatio - indexWidth) / courseColumns.length,
+    );
+    const cellWidth = Math.max(160, Math.min(desiredCellWidth, 360));
+    courseColumns.forEach(col => {
+      col.style.width = `${cellWidth}px`;
+    });
+    table.style.width = `${indexWidth + cellWidth * courseColumns.length}px`;
+  }
+}
+
+function fitTableDisplay(container) {
+  const table = container.querySelector(".timetable");
+  if (!table) return;
+
+  table.style.transform = "none";
+  const naturalWidth = table.offsetWidth;
+  const naturalHeight = table.offsetHeight;
+  const scale = Math.min(
+    1,
+    container.clientWidth / naturalWidth,
+    Math.max(320, window.innerHeight - 32) / naturalHeight,
+  );
+
+  table.style.transformOrigin = "top left";
+  table.style.transform = `scale(${scale})`;
+  container.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+}
+
+function showStatus(msg, type = "") {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = "status" + (type ? " " + type : "");
+}
+
+// ─── Palette state ──────────────────────────────────────────
+
+let palettes = { ...DEFAULT_PALETTES };
+let currentPaletteKey = Object.keys(palettes)[0];
+let customColors = null; // array of hex strings when user edits
+let hasGenerated = false;
+const inverseFontColorIndexes = new Set();
+
+function getCurrentPalette() {
+  if (currentPaletteKey === CUSTOM_KEY && customColors) {
+    return customColors;
+  }
+  return palettes[currentPaletteKey] || palettes[Object.keys(palettes)[0]];
+}
+
+function getCurrentPaletteName() {
+  if (currentPaletteKey === CUSTOM_KEY) return "Custom";
+  return currentPaletteKey;
+}
+
+// ─── Palette dropdown ───────────────────────────────────────
+
+function renderSwatches(colors) {
+  return colors.map(c =>
+    `<span class="swatch" style="background:${c}"></span>`
+  ).join("");
+}
+
+function buildPaletteMenu() {
+  const menu = document.getElementById("palette-menu");
+  menu.innerHTML = "";
+
+  // Preset entries
+  for (const [name, colors] of Object.entries(palettes)) {
+    const item = document.createElement("div");
+    item.className = "palette-menu-item";
+    item.dataset.key = name;
+    item.innerHTML =
+      `<span class="palette-swatches">${renderSwatches(colors)}</span>` +
+      `<span class="palette-menu-name">${escapeHtml(name)}</span>`;
+    item.addEventListener("click", () => {
+      selectPalette(name);
+      closePaletteMenu();
+    });
+    menu.appendChild(item);
+  }
+
+  // Custom entry (only if customColors exist)
+  if (customColors) {
+    const divider = document.createElement("div");
+    divider.className = "palette-menu-divider";
+    menu.appendChild(divider);
+
+    const item = document.createElement("div");
+    item.className = "palette-menu-item";
+    item.dataset.key = CUSTOM_KEY;
+    item.innerHTML =
+      `<span class="palette-swatches">${renderSwatches(customColors)}</span>` +
+      `<span class="palette-menu-name">Custom</span>`;
+    item.addEventListener("click", () => {
+      selectPalette(CUSTOM_KEY);
+      closePaletteMenu();
+    });
+    menu.appendChild(item);
+  }
+}
+
+function updatePaletteButton() {
+  const colors = getCurrentPalette();
+  document.getElementById("palette-current-swatches").innerHTML = renderSwatches(colors);
+  document.getElementById("palette-current-name").textContent = getCurrentPaletteName();
+}
+
+function selectPalette(key) {
+  currentPaletteKey = key;
+  inverseFontColorIndexes.clear();
+  updatePaletteButton();
+  renderColorEditor();
+}
+
+function openPaletteMenu() {
+  buildPaletteMenu();
+  document.getElementById("palette-menu").hidden = false;
+}
+
+function closePaletteMenu() {
+  document.getElementById("palette-menu").hidden = true;
+}
+
+// ─── Color editor ───────────────────────────────────────────
+
+function renderColorEditor() {
+  const editor = document.getElementById("color-editor");
+  const colors = getCurrentPalette();
+  editor.innerHTML = "";
+
+  colors.forEach((color, i) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "color-edit-item";
+
+    const picker = document.createElement("input");
+    picker.type = "color";
+    picker.value = color;
+    picker.className = "color-picker";
+    picker.dataset.index = i;
+
+    const hexInput = document.createElement("input");
+    hexInput.type = "text";
+    hexInput.value = color.toUpperCase();
+    hexInput.className = "color-hex-input";
+    hexInput.dataset.index = i;
+    hexInput.maxLength = 7;
+
+    const inverseLabel = document.createElement("label");
+    inverseLabel.className = "inverse-color-toggle";
+    inverseLabel.title = "Inverse font color";
+    const inverseInput = document.createElement("input");
+    inverseInput.type = "checkbox";
+    inverseInput.checked = inverseFontColorIndexes.has(i);
+    inverseInput.setAttribute("aria-label", `Inverse font color for ${color.toUpperCase()}`);
+    const inverseText = document.createElement("span");
+    inverseText.textContent = "Aa";
+    inverseLabel.appendChild(inverseInput);
+    inverseLabel.appendChild(inverseText);
+
+    picker.addEventListener("input", () => {
+      editColor(i, picker.value);
+      hexInput.value = picker.value.toUpperCase();
+    });
+
+    hexInput.addEventListener("change", () => {
+      let v = hexInput.value.trim();
+      if (!v.startsWith("#")) v = "#" + v;
+      if (isValidHex(v)) {
+        editColor(i, v);
+        picker.value = v;
+      } else {
+        hexInput.value = colors[i].toUpperCase();
+      }
+    });
+
+    inverseInput.addEventListener("change", () => {
+      if (inverseInput.checked) inverseFontColorIndexes.add(i);
+      else inverseFontColorIndexes.delete(i);
+      if (currentTable) rerenderTable();
+    });
+
+    wrapper.appendChild(picker);
+    wrapper.appendChild(hexInput);
+    wrapper.appendChild(inverseLabel);
+    editor.appendChild(wrapper);
+  });
+}
+
+function editColor(index, newHex) {
+  // On first edit of a preset, clone into customColors and switch to custom
+  if (currentPaletteKey !== CUSTOM_KEY) {
+    customColors = [...getCurrentPalette()];
+    currentPaletteKey = CUSTOM_KEY;
+    updatePaletteButton();
+  }
+
+  if (currentPaletteKey === CUSTOM_KEY) {
+    customColors[index] = newHex;
+  }
+
+  // Update swatches in button + editor
+  updatePaletteButton();
+}
+
+// ─── Main app ───────────────────────────────────────────────
+
+let currentTable = null;
+let currentFile = null;
+
+function init() {
+  // Palette dropdown toggle
+  const toggle = document.getElementById("palette-toggle");
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById("palette-menu");
+    if (menu.hidden) {
+      openPaletteMenu();
+    } else {
+      closePaletteMenu();
+    }
+  });
+
+  // Close menu on outside click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".palette-dropdown")) {
+      closePaletteMenu();
+    }
+  });
+
+  // Initial palette UI
+  updatePaletteButton();
+  renderColorEditor();
+
+  // File input
+  const fileInput = document.getElementById("file-input");
+  const fileInfo = document.getElementById("file-info");
+  const genBtn = document.getElementById("generate-btn");
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      currentFile = file;
+      fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      genBtn.disabled = false;
+    } else {
+      currentFile = null;
+      fileInfo.textContent = "";
+      genBtn.disabled = true;
+    }
+  });
+
+  genBtn.addEventListener("click", generate);
+
+  // Export buttons
+  document.getElementById("export-png-btn").addEventListener("click", exportPNG);
+  document.getElementById("export-xlsx-btn").addEventListener("click", exportXLSX);
+
+  window.addEventListener("resize", () => {
+    fitTableDisplay(document.getElementById("table-container"));
+  });
+}
+
+function generate() {
+  if (!currentFile) return;
+  showStatus("正在解析文件…");
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {
+        header: 1,
+        defval: "",
+      });
+
+      const options = {
+        palette: getCurrentPalette(),
+        groupByClass: document.getElementById("group-by-class").checked,
+      };
+
+      currentTable = new CourseTable(ws);
+      currentTable.prepare(options);
+
+      const container = document.getElementById("table-container");
+      container.innerHTML = currentTable.render(options.palette);
+      fitTableAspect(container);
+      fitTableDisplay(container);
+      waitForFonts().then(() => {
+        fitTableAspect(container);
+        fitTableDisplay(container);
+      });
+
+      // Attach cell click handlers
+      container.querySelectorAll(".editable-cell").forEach(element => {
+        element.addEventListener("click", onCellClick);
+      });
+
+      showStatus("");
+
+      // Morph button: Generate → Regenerate
+      hasGenerated = true;
+      const btn = document.getElementById("generate-btn");
+      btn.textContent = "Regenerate";
+
+      // Show export buttons
+      document.getElementById("export-row").hidden = false;
+    } catch (err) {
+      showStatus("生成失败: " + err.message, "error");
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(currentFile);
+}
+
+// ─── Cell edit modal ────────────────────────────────────────
+
+function onCellClick(e) {
+  const element = e.currentTarget;
+  const kind = element.dataset.kind;
+  const row = element.dataset.row === undefined ? null : Number(element.dataset.row);
+  const col = element.dataset.col === undefined ? null : Number(element.dataset.col);
+  const cell = kind === "course" ? currentTable.getCell(row, col) : null;
+  openEditModal({ cell, kind, row, col, element });
+}
+
+function openEditModal({ cell, kind, row, col, element }) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+
+  const card = document.createElement("div");
+  card.className = "modal-card";
+
+  function closeModal() {
+    document.removeEventListener("keydown", onModalKeydown);
+    overlay.remove();
+  }
+
+  function onModalKeydown(event) {
+    if (event.key === "Escape") closeModal();
+  }
+
+  const heading = document.createElement("h3");
+  heading.className = "modal-heading";
+  if (kind === "header") heading.textContent = `Edit — 周${EN2CN_NUM[col]}`;
+  else if (kind === "time") heading.textContent = `Edit — 第${row + 1}节`;
+  else if (kind === "course") heading.textContent = `Edit — 第${row + 1}节 周${EN2CN_NUM[col]}`;
+  else heading.textContent = "Edit — Corner";
+  card.appendChild(heading);
+
+  const fields = [
+    { key: "classname", label: "课程名称" },
+    { key: "classroom", label: "教室" },
+    { key: "frequency", label: "频率" },
+    { key: "note", label: "备注", multiline: true },
+    { key: "examinfo", label: "考试信息", multiline: true },
+  ];
+
+  const inputs = {};
+  if (cell) {
+    const originalClassname = cell.classname;
+    const contentHeading = document.createElement("h4");
+    contentHeading.className = "modal-subheading";
+    contentHeading.textContent = "Content";
+    card.appendChild(contentHeading);
+
+    for (const f of fields) {
+      const group = document.createElement("div");
+      group.className = "modal-field";
+
+      const lbl = document.createElement("label");
+      lbl.textContent = f.label;
+      group.appendChild(lbl);
+
+      const input = document.createElement(f.multiline ? "textarea" : "input");
+      input.value = cell[f.key] || "";
+      input.dataset.key = f.key;
+      group.appendChild(input);
+
+      inputs[f.key] = input;
+      card.appendChild(group);
+    }
+
+    // Content-only save: update every cell sharing the original classname;
+    // typography remains independent.
+    const contentActions = document.createElement("div");
+    contentActions.className = "modal-actions";
+    const saveContentBtn = document.createElement("button");
+    saveContentBtn.className = "button-primary";
+    saveContentBtn.textContent = "Save content";
+    saveContentBtn.addEventListener("click", () => {
+      const content = {};
+      for (const [key, input] of Object.entries(inputs)) {
+        content[key] = input.value;
+      }
+      currentTable.updateClassContent(originalClassname, content);
+      closeModal();
+      rerenderTable();
+    });
+    contentActions.appendChild(saveContentBtn);
+    card.appendChild(contentActions);
+  }
+
+  const typography = currentTable.getTypography(kind, row, col);
+
+  const fontHeading = document.createElement("h4");
+  fontHeading.className = "modal-subheading";
+  fontHeading.textContent = "Font (applies to all cells of this type)";
+  card.appendChild(fontHeading);
+
+  const styleGroup = document.createElement("div");
+  styleGroup.className = "modal-field";
+  const styleLabel = document.createElement("label");
+  styleLabel.textContent = "Font style";
+  const styleSelect = document.createElement("select");
+  for (const [label, value] of FONT_STYLE_OPTIONS) {
+    const option = document.createElement("option");
+    option.textContent = label;
+    option.value = value;
+    styleSelect.appendChild(option);
+  }
+  styleSelect.value = typography?.fontStyle || DEFAULT_FONT_STYLE_BY_KIND[kind] || DEFAULT_FONT_STYLE;
+  styleGroup.appendChild(styleLabel);
+  styleGroup.appendChild(styleSelect);
+  card.appendChild(styleGroup);
+
+  const familyGroup = document.createElement("div");
+  familyGroup.className = "modal-field";
+  const familyLabel = document.createElement("label");
+  familyLabel.textContent = "Font family";
+  const familySelect = document.createElement("select");
+
+  function populateFamilySelect(preferredKey) {
+    familySelect.replaceChildren();
+    const options = getFontFamilyOptions(styleSelect.value);
+    for (const [label, key] of options) {
+      const option = document.createElement("option");
+      option.textContent = label;
+      option.value = key;
+      familySelect.appendChild(option);
+    }
+    const validPreferred = options.some(([, key]) => key === preferredKey);
+    familySelect.value = validPreferred ? preferredKey : options[0][1];
+  }
+
+  populateFamilySelect(typography?.fontFamilyKey || DEFAULT_FONT_FAMILY_BY_KIND[kind] || DEFAULT_FONT_FAMILY);
+  styleSelect.addEventListener("change", () => {
+    populateFamilySelect(familySelect.value);
+  });
+  familyGroup.appendChild(familyLabel);
+  familyGroup.appendChild(familySelect);
+  card.appendChild(familyGroup);
+
+  const sizeGroup = document.createElement("div");
+  sizeGroup.className = "modal-field";
+  const sizeLabel = document.createElement("label");
+  sizeLabel.textContent = "字体大小 (px)";
+  const sizeInput = document.createElement("input");
+  sizeInput.type = "number";
+  sizeInput.min = "10";
+  sizeInput.max = "40";
+  sizeInput.step = "1";
+  sizeInput.value = String(typography?.fontSize || DEFAULT_FONT_SIZE_BY_KIND[kind] || 16);
+  sizeGroup.appendChild(sizeLabel);
+  sizeGroup.appendChild(sizeInput);
+  card.appendChild(sizeGroup);
+
+  // Font-only save: updates typography, never touches cell content.
+  const fontActions = document.createElement("div");
+  fontActions.className = "modal-actions";
+  const saveFontBtn = document.createElement("button");
+  saveFontBtn.className = "button-primary";
+  saveFontBtn.textContent = "Save font";
+  saveFontBtn.addEventListener("click", () => {
+    const fontStyle = styleSelect.value;
+    const fontFamilyKey = familySelect.value;
+    currentTable.setTypography(kind, row, col, {
+      fontStyle,
+      fontFamilyKey,
+      fontFamily: resolveFontFamily(fontStyle, fontFamilyKey),
+      fontSize: Math.max(10, Math.min(Number(sizeInput.value) || 16, 40)),
+    });
+    closeModal();
+    rerenderTable();
+  });
+  fontActions.appendChild(saveFontBtn);
+  card.appendChild(fontActions);
+
+  // Actions
+  const actions = document.createElement("div");
+  actions.className = "modal-actions";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "button-secondary";
+  cancelBtn.textContent = "Close";
+  cancelBtn.addEventListener("click", closeModal);
+
+  actions.appendChild(cancelBtn);
+  card.appendChild(actions);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  document.addEventListener("keydown", onModalKeydown);
+
+  // Close on overlay click
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  (inputs.classname || styleSelect).focus();
+}
+
+async function rerenderTable() {
+  if (!currentTable) return;
+  const palette = getCurrentPalette();
+  const container = document.getElementById("table-container");
+  container.innerHTML = currentTable.render(palette);
+  fitTableAspect(container);
+  fitTableDisplay(container);
+  await waitForFonts();
+  fitTableAspect(container);
+  fitTableDisplay(container);
+  container.querySelectorAll(".editable-cell").forEach(element => {
+    element.addEventListener("click", onCellClick);
+  });
+}
+
+// ─── Export ─────────────────────────────────────────────────
+
+async function exportPNG() {
+  const container = document.getElementById("table-container");
+  const table = container.querySelector(".timetable");
+  if (!table) return;
+
+  await waitForFonts();
+  fitTableAspect(container);
+  showStatus("正在导出 PNG…");
+
+  // Wrap table in a padded staging div so the exported image keeps a minimal
+  // margin around the rounded-corner table (html2canvas clips to the target).
+  const margin = 12;
+  const staging = document.createElement("div");
+  staging.style.cssText = `position:fixed;left:-100000px;top:0;padding:${margin}px;` +
+    `background:${getComputedStyle(document.body).backgroundColor};display:inline-block;`;
+  const clone = table.cloneNode(true);
+  clone.style.transform = "none";
+  clone.style.height = "auto";
+  staging.appendChild(clone);
+  document.body.appendChild(staging);
+
+  // Force layout, then size html2canvas from real scroll dimensions so the
+  // full table (including the last row) is captured — never clipped to 1:1.
+  void staging.offsetHeight;
+  const fullWidth = staging.scrollWidth;
+  const fullHeight = staging.scrollHeight;
+
+  html2canvas(staging, {
+    backgroundColor: getComputedStyle(document.body).backgroundColor,
+    scale: 2,
+    width: fullWidth,
+    height: fullHeight,
+    windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
+    windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
+  }).then(canvas => {
+    staging.remove();
+    fitTableDisplay(container);
+    canvas.toBlob(blob => {
+      downloadBlob(blob, "timetable.png");
+      showStatus("");
+    });
+  }).catch(err => {
+    staging.remove();
+    fitTableDisplay(container);
+    showStatus("PNG 导出失败: " + err.message, "error");
+  });
+}
+
+function exportXLSX() {
+  if (!currentTable) return;
+  showStatus("正在导出 XLSX…");
+
+  try {
+    const [rowLen, colLen] = currentTable.shape();
+    const wsData = [];
+
+    // Header row
+    const header = [""];
+    for (let c = 0; c < colLen; c++) {
+      header.push(`周${EN2CN_NUM[c]}`);
+    }
+    wsData.push(header);
+
+    // Body rows — 2 rows per period (upper: classname + classroom, lower: remaining info)
+    for (let r = 0; r < rowLen; r++) {
+      const period = r + 1;
+      const time = CLASS_TIME_MAP[period] || "";
+
+      // Upper row
+      const upperRow = [`第 ${period} 节\n${time}`];
+      // Lower row
+      const lowerRow = [""];
+
+      for (let c = 0; c < colLen; c++) {
+        const cell = currentTable.getCell(r, c);
+        if (!cell) {
+          upperRow.push("");
+          lowerRow.push("");
+        } else {
+          // Upper: classname + (classroom)
+          let upper = cell.classname || "";
+          if (cell.classroom) {
+            upper += `\n（${cell.classroom}，${cell.frequency}）`;
+          }
+          upperRow.push(upper);
+
+          // Lower: note + examinfo
+          let lower = "";
+          if (cell.note) lower += cell.note;
+          if (cell.note && cell.examinfo) lower += "\n";
+          if (cell.examinfo) lower += cell.examinfo;
+          lowerRow.push(lower);
+        }
+      }
+      wsData.push(upperRow);
+      wsData.push(lowerRow);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Merge time label column (col 0): rows 1+2, 3+4, etc.
+    const merges = [];
+    for (let i = 0; i < rowLen; i++) {
+      const upperRowIdx = 1 + i * 2;
+      const lowerRowIdx = upperRowIdx + 1;
+      merges.push({ s: { r: upperRowIdx, c: 0 }, e: { r: lowerRowIdx, c: 0 } });
+    }
+    ws["!merges"] = merges;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], { type: "application/octet-stream" });
+    downloadBlob(blob, "timetable.xlsx");
+    showStatus("");
+  } catch (err) {
+    showStatus("XLSX 导出失败: " + err.message, "error");
+    console.error(err);
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.addEventListener("DOMContentLoaded", init);
