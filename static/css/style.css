@@ -781,6 +781,24 @@ body:not(:has(.timetable)) .output-section {
   min-width: 120px;
 }
 
+.button-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin 0.7s linear infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-spinner { animation-duration: 1.4s; }
+}
+
 /* ─── Clickable cells ─────────────────────────────────────── */
 
 .timetable .editable-cell {

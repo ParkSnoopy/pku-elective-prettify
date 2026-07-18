@@ -1062,122 +1062,322 @@ async function rerenderTable() {
 
 // ─── Export ─────────────────────────────────────────────────
 
+const XLSX_COLORS = {
+  canvas: "FAF9F5",
+  cream: "E8E0D2",
+  hairline: "E6DFD8",
+  divider: "D2CAC2",
+  ink: "141413",
+  body: "3D3D3A",
+  muted: "6C6A64",
+  inversePrimary: "FFFFFF",
+  inverseSecondary: "F0F0F2",
+  inverseRemain: "D5D6DA",
+};
+
+function blendHexColors(foreground, background, opacity) {
+  const parse = hex => {
+    const value = hex.replace("#", "");
+    return [0, 2, 4].map(offset => parseInt(value.slice(offset, offset + 2), 16));
+  };
+  const foregroundRgb = parse(foreground);
+  const backgroundRgb = parse(background);
+  return foregroundRgb.map((channel, index) =>
+    Math.round(channel * opacity + backgroundRgb[index] * (1 - opacity))
+      .toString(16)
+      .padStart(2, "0")
+  ).join("").toUpperCase();
+}
+
+function xlsxColor(hex) {
+  return { rgb: `FF${hex.replace("#", "").toUpperCase()}` };
+}
+
+function xlsxFontName(fontStyle, fontFamilyKey) {
+  if (fontFamilyKey === "maple") return "Maple Mono";
+  if (fontFamilyKey === "noto") {
+    if (fontStyle === "serif") return "Noto Serif CJK SC";
+    if (fontStyle === "mono") return "Noto Sans Mono CJK SC";
+    return "Noto Sans CJK SC";
+  }
+  if (fontStyle === "serif") return "Roboto Serif";
+  if (fontStyle === "mono") return "Roboto Mono";
+  return "Roboto";
+}
+
+function xlsxTypography(table, kind, sizeOffset = 0) {
+  const typography = table.getTypography(kind);
+  const fontStyle = typography?.fontStyle || DEFAULT_FONT_STYLE_BY_KIND[kind];
+  const fontFamilyKey = typography?.fontFamilyKey || DEFAULT_FONT_FAMILY_BY_KIND[kind];
+  const fontSizePx = (typography?.fontSize || DEFAULT_FONT_SIZE_BY_KIND[kind]) + sizeOffset;
+  return {
+    name: xlsxFontName(fontStyle, fontFamilyKey),
+    sz: Number((Math.max(8, fontSizePx) * 0.75).toFixed(2)),
+  };
+}
+
+function xlsxBorder(rowRole, column, columnCount, isHeader = false) {
+  const thin = { style: "thin", color: xlsxColor(XLSX_COLORS.hairline) };
+  const divider = { style: "medium", color: xlsxColor(XLSX_COLORS.divider) };
+  const border = {
+    left: column === 0 ? divider : thin,
+    right: column === columnCount - 1 ? divider : thin,
+  };
+  if (isHeader) {
+    border.top = divider;
+    border.bottom = thin;
+  } else if (rowRole === 3) {
+    border.bottom = divider;
+  }
+  return border;
+}
+
+function encodeXlsxColumn(column) {
+  let value = column + 1;
+  let encoded = "";
+  while (value > 0) {
+    value -= 1;
+    encoded = String.fromCharCode(65 + (value % 26)) + encoded;
+    value = Math.floor(value / 26);
+  }
+  return encoded;
+}
+
+function setXlsxCell(worksheet, row, column, value, style) {
+  worksheet[`${encodeXlsxColumn(column)}${row + 1}`] = {
+    t: "s",
+    v: value || "",
+    s: style,
+  };
+}
+
+function buildStyledWorksheet(table, palette, dimensions = {}) {
+  const [periodCount, dayCount] = table.shape();
+  const columnCount = dayCount + 1;
+  const columnWidths = dimensions.columnWidths || [80, ...Array(dayCount).fill(180)];
+  const worksheet = {
+    "!ref": `A1:${encodeXlsxColumn(columnCount - 1)}${1 + periodCount * 4}`,
+    "!cols": columnWidths.map(width => ({ wpx: width })),
+    "!rows": [{ hpt: (dimensions.headerHeight || 44) * 0.75 }],
+    "!margins": { left: 0.25, right: 0.25, top: 0.3, bottom: 0.3, header: 0, footer: 0 },
+  };
+
+  const headerFont = { ...xlsxTypography(table, "header"), bold: true, color: xlsxColor(XLSX_COLORS.ink) };
+  for (let column = 0; column < columnCount; column++) {
+    setXlsxCell(worksheet, 0, column, column === 0 ? "" : `周${EN2CN_NUM[column - 1]}`, {
+      font: headerFont,
+      fill: { patternType: "solid", fgColor: xlsxColor(XLSX_COLORS.cream) },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: xlsxBorder(0, column, columnCount, true),
+    });
+  }
+
+  const courseTypography = table.getTypography("course");
+  const courseScale = (courseTypography?.fontSize || DEFAULT_FONT_SIZE_BY_KIND.course) /
+    DEFAULT_FONT_SIZE_BY_KIND.course;
+  const defaultRoleHeights = [
+    (DEFAULT_FONT_SIZE_BY_KIND.course * 1.3 + 4) * courseScale,
+    (DEFAULT_FONT_SIZE_BY_KIND.course - 3) * 1.3 * courseScale,
+    ((DEFAULT_FONT_SIZE_BY_KIND.course - 4) * 1.3 + 2) * courseScale,
+    ((DEFAULT_FONT_SIZE_BY_KIND.course - 4) * 1.3 + 2) * courseScale,
+  ];
+
+  for (let periodIndex = 0; periodIndex < periodCount; periodIndex++) {
+    const period = periodIndex + 1;
+    const firstRow = 1 + periodIndex * 4;
+    const timeValues = ["", String(period), CLASS_TIME_MAP[period] || "", ""];
+    const measuredPeriodHeight = dimensions.periodHeights?.[periodIndex];
+    const defaultPeriodHeight = defaultRoleHeights.reduce((sum, height) => sum + height, 0);
+    const heightScale = measuredPeriodHeight ? measuredPeriodHeight / defaultPeriodHeight : 1;
+    const roleHeights = defaultRoleHeights.map(height =>
+      Number((height * heightScale).toFixed(2))
+    );
+
+    for (let rowRole = 0; rowRole < 4; rowRole++) {
+      const worksheetRow = firstRow + rowRole;
+      worksheet["!rows"].push({ hpt: Number((roleHeights[rowRole] * 0.75).toFixed(2)) });
+      const isPeriodNumber = rowRole === 1;
+      const timeFont = {
+        ...xlsxTypography(table, "time", isPeriodNumber ? 0 : -14),
+        bold: isPeriodNumber,
+        color: xlsxColor(isPeriodNumber ? XLSX_COLORS.ink : XLSX_COLORS.muted),
+      };
+      setXlsxCell(worksheet, worksheetRow, 0, timeValues[rowRole], {
+        font: timeFont,
+        fill: { patternType: "solid", fgColor: xlsxColor(XLSX_COLORS.cream) },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: xlsxBorder(rowRole, 0, columnCount),
+      });
+    }
+
+    for (let dayIndex = 0; dayIndex < dayCount; dayIndex++) {
+      const cell = table.getCell(periodIndex, dayIndex);
+      const column = dayIndex + 1;
+      let values = ["", "", "", ""];
+      let upperFill = XLSX_COLORS.canvas;
+      let lowerFill = XLSX_COLORS.canvas;
+      let inverse = false;
+
+      if (cell) {
+        const baseColor = palette[cell.label] || "#FFFFFF";
+        upperFill = blendHexColors(baseColor, `#${XLSX_COLORS.canvas}`, 0.85);
+        lowerFill = blendHexColors(lightenHex(baseColor), `#${XLSX_COLORS.canvas}`, 0.5);
+        inverse = inverseFontColorIndexes.has(cell.label);
+        const classroomParts = [cell.classroom, cell.frequency].filter(Boolean);
+        values = [
+          cell.classname || "",
+          classroomParts.length ? `（${classroomParts.join("，")}）` : "",
+          cell.note ? `${cell.note.replace(/[；;]+$/, "")}${cell.examinfo ? "；" : ""}` : "",
+          cell.examinfo ? cell.examinfo.replace(/[；;]+$/, "") : "",
+        ];
+      }
+
+      const roleFonts = [
+        { ...xlsxTypography(table, "course"), bold: true,
+          color: xlsxColor(inverse ? XLSX_COLORS.inversePrimary : XLSX_COLORS.ink) },
+        { ...xlsxTypography(table, "course", -3), bold: false,
+          color: xlsxColor(inverse ? XLSX_COLORS.inverseSecondary : XLSX_COLORS.body) },
+        { ...xlsxTypography(table, "course", -4), bold: false,
+          color: xlsxColor(inverse ? XLSX_COLORS.inverseRemain : XLSX_COLORS.muted) },
+        { ...xlsxTypography(table, "course", -4), bold: false,
+          color: xlsxColor(inverse ? XLSX_COLORS.inverseRemain : XLSX_COLORS.muted) },
+      ];
+
+      for (let rowRole = 0; rowRole < 4; rowRole++) {
+        setXlsxCell(worksheet, firstRow + rowRole, column, values[rowRole], {
+          font: roleFonts[rowRole],
+          fill: {
+            patternType: "solid",
+            fgColor: xlsxColor(rowRole < 2 ? upperFill : lowerFill),
+          },
+          alignment: { horizontal: "left", vertical: "center", wrapText: true },
+          border: xlsxBorder(rowRole, column, columnCount),
+        });
+      }
+    }
+  }
+
+  return worksheet;
+}
+
+function measureTimetableForXlsx() {
+  const table = document.querySelector("#table-container .timetable");
+  if (!table) return {};
+  return {
+    columnWidths: Array.from(table.querySelectorAll("col")).map(column => column.offsetWidth),
+    headerHeight: table.tHead?.rows[0]?.offsetHeight,
+    periodHeights: Array.from(table.tBodies[0]?.rows || []).map(row => row.offsetHeight),
+  };
+}
+
+function waitForNextPaint() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+async function withExportBusy(button, busyLabel, task) {
+  const exportButtons = document.querySelectorAll("#export-row button");
+  exportButtons.forEach(exportButton => {
+    exportButton.dataset.defaultLabel ||= exportButton.textContent;
+    exportButton.disabled = true;
+  });
+  button.setAttribute("aria-busy", "true");
+  button.replaceChildren();
+  const spinner = document.createElement("span");
+  spinner.className = "button-spinner";
+  spinner.setAttribute("aria-hidden", "true");
+  const label = document.createElement("span");
+  label.textContent = busyLabel;
+  button.appendChild(spinner);
+  button.appendChild(label);
+
+  await waitForNextPaint();
+  try {
+    return await task();
+  } finally {
+    button.removeAttribute("aria-busy");
+    exportButtons.forEach(exportButton => {
+      exportButton.textContent = exportButton.dataset.defaultLabel;
+      exportButton.disabled = false;
+    });
+  }
+}
+
 async function exportPNG() {
   const container = document.getElementById("table-container");
   const table = container.querySelector(".timetable");
   if (!table) return;
 
-  await waitForFonts();
-  fitTableAspect(container);
-  showStatus("正在导出 PNG…");
+  const button = document.getElementById("export-png-btn");
+  try {
+    await withExportBusy(button, "Building PNG…", async () => {
+      await waitForFonts();
+      fitTableAspect(container);
+      showStatus("正在导出 PNG…");
 
-  // Wrap table in a padded staging div so the exported image keeps a minimal
-  // margin around the rounded-corner table (html2canvas clips to the target).
-  const margin = 12;
-  const staging = document.createElement("div");
-  staging.style.cssText = `position:fixed;left:-100000px;top:0;padding:${margin}px;` +
-    `background:${getComputedStyle(document.body).backgroundColor};display:inline-block;`;
-  const clone = table.cloneNode(true);
-  clone.style.transform = "none";
-  clone.style.height = "auto";
-  staging.appendChild(clone);
-  document.body.appendChild(staging);
+      const margin = 12;
+      const staging = document.createElement("div");
+      staging.style.cssText = `position:fixed;left:-100000px;top:0;padding:${margin}px;` +
+        `background:${getComputedStyle(document.body).backgroundColor};display:inline-block;`;
+      const clone = table.cloneNode(true);
+      clone.style.transform = "none";
+      clone.style.height = "auto";
+      staging.appendChild(clone);
+      document.body.appendChild(staging);
 
-  // Force layout, then size html2canvas from real scroll dimensions so the
-  // full table (including the last row) is captured — never clipped to 1:1.
-  void staging.offsetHeight;
-  const fullWidth = staging.scrollWidth;
-  const fullHeight = staging.scrollHeight;
-
-  html2canvas(staging, {
-    backgroundColor: getComputedStyle(document.body).backgroundColor,
-    scale: 2,
-    width: fullWidth,
-    height: fullHeight,
-    windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
-    windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
-  }).then(canvas => {
-    staging.remove();
-    fitTableDisplay(container);
-    canvas.toBlob(blob => {
-      downloadBlob(blob, "timetable.png");
-      showStatus("");
+      try {
+        void staging.offsetHeight;
+        const fullWidth = staging.scrollWidth;
+        const fullHeight = staging.scrollHeight;
+        const canvas = await html2canvas(staging, {
+          backgroundColor: getComputedStyle(document.body).backgroundColor,
+          scale: 2,
+          width: fullWidth,
+          height: fullHeight,
+          windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
+          windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
+        });
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob(result => result ? resolve(result) : reject(new Error("Canvas encoding failed")));
+        });
+        downloadBlob(blob, "timetable.png");
+        showStatus("");
+      } finally {
+        staging.remove();
+        fitTableDisplay(container);
+      }
     });
-  }).catch(err => {
-    staging.remove();
-    fitTableDisplay(container);
+  } catch (err) {
     showStatus("PNG 导出失败: " + err.message, "error");
-  });
+    console.error(err);
+  }
 }
 
-function exportXLSX() {
+async function exportXLSX() {
   if (!currentTable) return;
-  showStatus("正在导出 XLSX…");
-
+  const button = document.getElementById("export-xlsx-btn");
   try {
-    const [rowLen, colLen] = currentTable.shape();
-    const wsData = [];
-
-    // Header row
-    const header = [""];
-    for (let c = 0; c < colLen; c++) {
-      header.push(`周${EN2CN_NUM[c]}`);
-    }
-    wsData.push(header);
-
-    // Body rows — 2 rows per period (upper: classname + classroom, lower: remaining info)
-    for (let r = 0; r < rowLen; r++) {
-      const period = r + 1;
-      const time = CLASS_TIME_MAP[period] || "";
-
-      // Upper row
-      const upperRow = [`第 ${period} 节\n${time}`];
-      // Lower row
-      const lowerRow = [""];
-
-      for (let c = 0; c < colLen; c++) {
-        const cell = currentTable.getCell(r, c);
-        if (!cell) {
-          upperRow.push("");
-          lowerRow.push("");
-        } else {
-          // Upper: classname + (classroom)
-          let upper = cell.classname || "";
-          if (cell.classroom) {
-            upper += `\n（${cell.classroom}，${cell.frequency}）`;
-          }
-          upperRow.push(upper);
-
-          // Lower: note + examinfo
-          let lower = "";
-          if (cell.note) lower += cell.note;
-          if (cell.note && cell.examinfo) lower += "\n";
-          if (cell.examinfo) lower += cell.examinfo;
-          lowerRow.push(lower);
-        }
-      }
-      wsData.push(upperRow);
-      wsData.push(lowerRow);
-    }
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-    // Merge time label column (col 0): rows 1+2, 3+4, etc.
-    const merges = [];
-    for (let i = 0; i < rowLen; i++) {
-      const upperRowIdx = 1 + i * 2;
-      const lowerRowIdx = upperRowIdx + 1;
-      merges.push({ s: { r: upperRowIdx, c: 0 }, e: { r: lowerRowIdx, c: 0 } });
-    }
-    ws["!merges"] = merges;
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Timetable");
-
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    const blob = new Blob([wbout], { type: "application/octet-stream" });
-    downloadBlob(blob, "timetable.xlsx");
-    showStatus("");
+    await withExportBusy(button, "Building XLSX…", async () => {
+      showStatus("正在导出 XLSX…");
+      const worksheet = buildStyledWorksheet(
+        currentTable,
+        getCurrentPalette(),
+        measureTimetableForXlsx(),
+      );
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Timetable");
+      const output = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+        cellStyles: true,
+      });
+      const blob = new Blob([output], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      downloadBlob(blob, "timetable.xlsx");
+      showStatus("");
+    });
   } catch (err) {
     showStatus("XLSX 导出失败: " + err.message, "error");
     console.error(err);

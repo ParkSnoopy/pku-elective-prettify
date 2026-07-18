@@ -85,6 +85,7 @@ function loadApp() {
       getFontFamilyOptions,
       resolveFontFamily,
       inverseFontColorIndexes,
+      buildStyledWorksheet,
     });
   `;
   return vm.runInContext(source + expose, sandbox);

@@ -447,6 +447,66 @@ test("inverse font color: applies to every cell assigned to palette color", () =
   app.inverseFontColorIndexes.clear();
 });
 
+test("XLSX export: worksheet mirrors timetable structure and styles", () => {
+  const wsData = [
+    MOCK_HEADER,
+    ["第一节", "ClassX(RoomA)(备注：NoteA) 每周 考试时间：ExamA", "", "", "", "", "", ""],
+  ];
+  const t = new CourseTable(wsData);
+  const palette = ["#79ADAC", "#BEADF2", "#A0C8F2", "#ADF7B6", "#FFEA99"];
+  t.prepare({ groupByClass: true });
+  t.render(palette);
+  t.getCell(0, 0).label = 0;
+
+  const ws = app.buildStyledWorksheet(t, palette, {
+    columnWidths: [80, 180, 180, 180, 180, 180],
+    headerHeight: 44,
+    periodHeights: [87],
+  });
+  eq(ws["!ref"], "A1:F5");
+  eq(ws.B2.v, "ClassX");
+  eq(ws.B3.v, "（RoomA，每周）");
+  eq(ws.B4.v, "NoteA；");
+  eq(ws.B5.v, "考试时间：ExamA");
+  eq(ws.B2.s.fill.fgColor.rgb, "FF8CB8B7");
+  eq(ws.B4.s.fill.fgColor.rgb, "FFCBE4E2");
+  eq(ws.B2.s.font.bold, true);
+  eq(ws.B2.s.alignment.wrapText, true);
+  eq(ws["!cols"][0].wpx, 80);
+  eq(ws["!cols"][1].wpx, 180);
+  eq(ws["!rows"][0].hpt, 33);
+  eq(Math.round(ws["!rows"].slice(1).reduce((sum, row) => sum + row.hpt, 0)), 65);
+  eq(ws["!rows"].length, 5);
+});
+
+test("XLSX export: follows edited font family, type, size, and weight hierarchy", () => {
+  const wsData = [MOCK_HEADER, ["第一节", "ClassX(RoomA)(备注：) 每周", "", "", "", "", "", ""]];
+  const t = new CourseTable(wsData);
+  const palette = ["#79ADAC", "#BEADF2", "#A0C8F2", "#ADF7B6", "#FFEA99"];
+  t.prepare({ groupByClass: true });
+  t.render(palette);
+  t.setTypography("header", null, null, {
+    fontStyle: "serif", fontFamilyKey: "noto", fontFamily: "Noto Serif CJK SC", fontSize: 22,
+  });
+  t.setTypography("time", null, null, {
+    fontStyle: "mono", fontFamilyKey: "maple", fontFamily: "Maple Mono", fontSize: 32,
+  });
+  t.setTypography("course", null, null, {
+    fontStyle: "sans", fontFamilyKey: "roboto", fontFamily: "Roboto", fontSize: 20,
+  });
+
+  const ws = app.buildStyledWorksheet(t, palette);
+  eq(ws.B1.s.font.name, "Noto Serif CJK SC");
+  eq(ws.B1.s.font.sz, 16.5);
+  eq(ws.A3.s.font.name, "Maple Mono");
+  eq(ws.A3.s.font.sz, 24);
+  eq(ws.B2.s.font.name, "Roboto");
+  eq(ws.B2.s.font.sz, 15);
+  eq(ws.B2.s.font.bold, true);
+  eq(ws.B3.s.font.sz, 12.75);
+  eq(ws.B3.s.font.bold, false);
+});
+
 // ─── CLASS_TIME_MAP / constants ────────────────────────────
 
 const { CLASS_TIME_MAP, EN2CN_NUM, CN2EN_NUM } = app;
