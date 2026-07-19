@@ -1314,7 +1314,6 @@ async function exportPNG() {
     await withExportBusy(button, "Building PNG…", async () => {
       await waitForFonts();
       fitTableAspect(container);
-      showStatus("正在导出 PNG…");
 
       const margin = 12;
       const staging = document.createElement("div");
@@ -1342,7 +1341,6 @@ async function exportPNG() {
           canvas.toBlob(result => result ? resolve(result) : reject(new Error("Canvas encoding failed")));
         });
         downloadBlob(blob, "timetable.png");
-        showStatus("");
       } finally {
         staging.remove();
         fitTableDisplay(container);
@@ -1359,7 +1357,6 @@ async function exportXLSX() {
   const button = document.getElementById("export-xlsx-btn");
   try {
     await withExportBusy(button, "Building XLSX…", async () => {
-      showStatus("正在导出 XLSX…");
       const worksheet = buildStyledWorksheet(
         currentTable,
         getCurrentPalette(),
@@ -1376,7 +1373,6 @@ async function exportXLSX() {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       downloadBlob(blob, "timetable.xlsx");
-      showStatus("");
     });
   } catch (err) {
     showStatus("XLSX 导出失败: " + err.message, "error");
