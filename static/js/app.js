@@ -16,7 +16,7 @@ const CLASS_TIME_MAP = {
 const MEAL_BREAKS = new Set([4, 9]);
 const EXPORT_PADDING = 12;
 const PNG_EXPORT_SCALE = 4;
-const ROW_DIVIDER_WIDTH = 1.5;
+const ROW_DIVIDER_WIDTH = 1;
 
 const EN2CN_NUM = ["一","二","三","四","五","六","日"];
 const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};

@@ -592,7 +592,7 @@ body:not(:has(.timetable)) .output-section {
 /* ─── Timetable ───────────────────────────────────────────── */
 
 .timetable {
-  --row-divider-width: 1.5px;
+  --row-divider-width: 1px;
   border-collapse: collapse;
   table-layout: fixed;
   border: var(--row-divider-width) solid var(--color-row-divider);
