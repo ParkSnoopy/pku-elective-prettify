@@ -71,6 +71,7 @@ function loadApp() {
       isValidHex,
       escapeHtml,
       CLASS_TIME_MAP,
+      getClassEndTime,
       formatClassTime,
       EN2CN_NUM,
       CN2EN_NUM,

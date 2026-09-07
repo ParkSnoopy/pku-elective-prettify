@@ -566,6 +566,11 @@ test("CLASS_TIME_MAP: start-time-only format", () => {
   }
 });
 
+test("getClassEndTime: adds the 50-minute class duration", () => {
+  eq(app.getClassEndTime("08:00"), "08:50");
+  eq(app.getClassEndTime("20:40"), "21:30");
+});
+
 test("index column: uses the expanded 120px width", () => {
   eq(app.INDEX_COLUMN_WIDTH, 120);
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
@@ -586,14 +591,21 @@ test("formatClassTime: supports 24-hour and zero-padded 12-hour labels", () => {
 test("render: applies the selected format and hour padding to index times", () => {
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
   t.prepare({ groupByClass: false, timeFormat: "12", zeroPadding: false });
-  ok(t.render(["#111111"]).includes('<span class="time-range">8:00 AM</span>'));
+  const html = t.render(["#111111"]);
+  const start = html.indexOf('<span class="time-range start-time">8:00 AM</span>');
+  const index = html.indexOf('<span class="period">1</span>');
+  const end = html.indexOf('<span class="time-range end-time">8:50 AM</span>');
+  ok(start >= 0 && start < index && index < end);
 });
 
 test("XLSX export: applies the selected time format to index times", () => {
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
   t.prepare({ groupByClass: false, timeFormat: "12", zeroPadding: false });
   const ws = app.buildStyledWorksheet(t, ["#111111"]);
-  eq(ws.A4.v, "8:00 AM");
+  eq(ws.A2.v, "8:00 AM");
+  eq(ws.A3.v, "1");
+  eq(ws.A4.v, "8:50 AM");
+  eq(ws.A2.s.font.name, "Roboto Mono");
   eq(ws.A3.s.font.name, "Noto Serif CJK SC");
   eq(ws.A4.s.font.name, "Roboto Mono");
 });

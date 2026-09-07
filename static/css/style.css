@@ -710,10 +710,11 @@ body:not(:has(.timetable)) .output-section {
   font-weight: 700;
   color: var(--color-ink);
   display: block;
-  margin-bottom: 2px;
+  margin: 1px 0;
 }
 
 .timetable .time-label .time-range {
+  display: block;
   font-family: var(--font-mono);
   font-size: calc(var(--cell-font-size, 30px) - 14px);
   font-weight: 500;

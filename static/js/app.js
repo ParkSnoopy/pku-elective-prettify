@@ -12,6 +12,13 @@ const CLASS_TIME_MAP = {
   7: "15:10", 8: "16:10", 9: "17:10",
   10: "18:40", 11: "19:40", 12: "20:40",
 };
+const CLASS_DURATION_MINUTES = 50;
+
+function getClassEndTime(startTime) {
+  const [hour, minute] = startTime.split(":").map(Number);
+  const endMinutes = hour * 60 + minute + CLASS_DURATION_MINUTES;
+  return `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+}
 
 function formatClassTime(time, format = "24", zeroPadding = true) {
   if (!time) return time;
@@ -509,10 +516,13 @@ class CourseTable {
     for (let r = 0; r < rowLen; r++) {
       html.push('<tr class="period-row">');
       const period = r + 1;
-      const time = formatClassTime(CLASS_TIME_MAP[period] || "", this.options.timeFormat, this.options.zeroPadding);
+      const startTime = CLASS_TIME_MAP[period] || "";
+      const formattedStart = formatClassTime(startTime, this.options.timeFormat, this.options.zeroPadding);
+      const formattedEnd = formatClassTime(getClassEndTime(startTime), this.options.timeFormat, this.options.zeroPadding);
       html.push(
-        `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}"><span class="period">${period}</span>` +
-        `<span class="time-range">${time}</span></td>`
+        `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}">` +
+        `<span class="time-range start-time">${formattedStart}</span><span class="period">${period}</span>` +
+        `<span class="time-range end-time">${formattedEnd}</span></td>`
       );
       for (let c = 0; c < colLen; c++) {
         const cell = this.getCell(r, c);
@@ -1310,9 +1320,13 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
   for (let periodIndex = 0; periodIndex < periodCount; periodIndex++) {
     const period = periodIndex + 1;
     const firstRow = 1 + periodIndex * 4;
-    const timeValues = ["", String(period), formatClassTime(
-      CLASS_TIME_MAP[period] || "", table.options.timeFormat, table.options.zeroPadding,
-    ), ""];
+    const startTime = CLASS_TIME_MAP[period] || "";
+    const timeValues = [
+      formatClassTime(startTime, table.options.timeFormat, table.options.zeroPadding),
+      String(period),
+      formatClassTime(getClassEndTime(startTime), table.options.timeFormat, table.options.zeroPadding),
+      "",
+    ];
     const measuredPeriodHeight = dimensions.periodHeights?.[periodIndex];
     const defaultPeriodHeight = defaultRoleHeights.reduce((sum, height) => sum + height, 0);
     const heightScale = measuredPeriodHeight ? measuredPeriodHeight / defaultPeriodHeight : 1;
@@ -1326,7 +1340,7 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
       const isPeriodNumber = rowRole === 1;
       const timeFont = {
         ...xlsxTypography(table, "time", isPeriodNumber ? 0 : -14),
-        ...(rowRole === 2 ? { name: "Roboto Mono" } : {}),
+        ...(rowRole !== 1 ? { name: "Roboto Mono" } : {}),
         bold: isPeriodNumber,
         color: xlsxColor(isPeriodNumber ? XLSX_COLORS.ink : XLSX_COLORS.muted),
       };
