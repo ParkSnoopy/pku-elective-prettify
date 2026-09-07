@@ -278,6 +278,14 @@ test("latest sample: prompts once for exercise classroom and applies selection",
   eq(table.getCell(10, 1).classroom, "三教208");
 });
 
+test("classroom choice: reuses only an available remembered selection", () => {
+  const request = { key: "exercise", options: ["二教412", "三教208", "暂无"] };
+  app.classroomSelections.set(request.key, "三教208");
+  eq(app.getRememberedClassroom(request), "三教208");
+  eq(app.getRememberedClassroom({ ...request, options: ["二教412", "暂无"] }), null);
+  app.classroomSelections.clear();
+});
+
 // ─── Color helpers ─────────────────────────────────────────
 
 const { lightenHex, hexToRgba, isValidHex, escapeHtml } = app;

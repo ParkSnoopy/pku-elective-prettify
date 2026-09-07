@@ -801,6 +801,7 @@ function editColor(index, newHex) {
 
 let currentTable = null;
 let currentFile = null;
+const classroomSelections = new Map();
 
 function init() {
   // Palette dropdown toggle
@@ -911,9 +912,18 @@ function generate() {
 
 async function resolveClassroomChoices(table) {
   for (const request of table.getClassroomChoiceRequests()) {
-    const classroom = await openClassroomChoicePopup(request);
+    let classroom = getRememberedClassroom(request);
+    if (!classroom) {
+      classroom = await openClassroomChoicePopup(request);
+      classroomSelections.set(request.key, classroom);
+    }
     table.selectClassroom(request, classroom);
   }
+}
+
+function getRememberedClassroom(request) {
+  const classroom = classroomSelections.get(request.key);
+  return request.options.includes(classroom) ? classroom : null;
 }
 
 function openClassroomChoicePopup(request) {
@@ -941,31 +951,18 @@ function openClassroomChoicePopup(request) {
     description.textContent = `${request.classname} · 周${EN2CN_NUM[request.col]} · ${periodText}`;
     card.appendChild(description);
 
-    const field = document.createElement("div");
-    field.className = "modal-field";
-    const label = document.createElement("label");
-    label.htmlFor = "classroom-choice-select";
-    label.textContent = "Classroom";
-    const select = document.createElement("select");
-    select.id = "classroom-choice-select";
+    const choices = document.createElement("div");
+    choices.className = "classroom-choice-options";
+    choices.setAttribute("aria-label", "Classroom choices");
     for (const classroom of request.options) {
-      const option = document.createElement("option");
-      option.value = classroom;
-      option.textContent = classroom;
-      select.appendChild(option);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "button-secondary classroom-choice-button";
+      button.textContent = classroom;
+      button.addEventListener("click", () => finish(classroom));
+      choices.appendChild(button);
     }
-    field.appendChild(label);
-    field.appendChild(select);
-    card.appendChild(field);
-
-    const actions = document.createElement("div");
-    actions.className = "modal-actions";
-    const confirmButton = document.createElement("button");
-    confirmButton.type = "button";
-    confirmButton.className = "button-primary";
-    confirmButton.textContent = "Use classroom";
-    actions.appendChild(confirmButton);
-    card.appendChild(actions);
+    card.appendChild(choices);
     overlay.appendChild(card);
 
     function finish(classroom) {
@@ -978,10 +975,9 @@ function openClassroomChoicePopup(request) {
       if (event.key === "Escape") finish("暂无");
     }
 
-    confirmButton.addEventListener("click", () => finish(select.value));
     document.addEventListener("keydown", onKeydown);
     document.body.appendChild(overlay);
-    select.focus();
+    choices.querySelector("button").focus();
   });
 }
 

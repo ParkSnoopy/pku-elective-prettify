@@ -87,6 +87,8 @@ function loadApp() {
       MEAL_BREAKS,
       PNG_EXPORT_SCALE,
       lightTextColorIndexes,
+      classroomSelections,
+      getRememberedClassroom,
       buildStyledWorksheet,
     });
   `;

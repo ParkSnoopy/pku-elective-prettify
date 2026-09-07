@@ -824,6 +824,17 @@ body:not(:has(.timetable)) .output-section {
   font-size: 16px;
 }
 
+.classroom-choice-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.classroom-choice-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .modal-subheading {
   font-family: var(--font-body);
   font-size: 16px;
