@@ -570,6 +570,13 @@ test("PNG export: renders at four times CSS resolution", () => {
   eq(app.PNG_EXPORT_SCALE, 4);
 });
 
+test("display: keeps horizontal row dividers at full width when scaled", () => {
+  eq(app.getRowDividerWidth(1), 1.5);
+  eq(app.getRowDividerWidth(0.6), 2.5);
+  const css = fs.readFileSync(path.join(__dirname, "..", "static", "css", "style.css"), "utf8");
+  eq((css.match(/var\(--row-divider-width\)/g) || []).length, 5);
+});
+
 test("SVG export: wraps the rendered timetable in a self-contained image", () => {
   const svg = app.buildRasterSvg(1200, 800, "data:image/png;base64,fixture");
   ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"'));

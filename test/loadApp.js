@@ -86,6 +86,7 @@ function loadApp() {
       resolveFontFamily,
       MEAL_BREAKS,
       PNG_EXPORT_SCALE,
+      getRowDividerWidth,
       lightTextColorIndexes,
       classroomSelections,
       getRememberedClassroom,

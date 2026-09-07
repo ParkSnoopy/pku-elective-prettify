@@ -592,9 +592,10 @@ body:not(:has(.timetable)) .output-section {
 /* ─── Timetable ───────────────────────────────────────────── */
 
 .timetable {
+  --row-divider-width: 1.5px;
   border-collapse: collapse;
   table-layout: fixed;
-  border: 1.5px solid var(--color-row-divider);
+  border: var(--row-divider-width) solid var(--color-row-divider);
   border-radius: 0;
   background: var(--color-canvas);
 }
@@ -607,17 +608,17 @@ body:not(:has(.timetable)) .output-section {
 }
 
 .timetable thead th {
-  border-bottom: 1.5px solid var(--color-row-divider);
+  border-bottom: var(--row-divider-width) solid var(--color-row-divider);
 }
 
-.timetable tbody .period-row + .period-row > td {
-  border-top: 1.5px solid var(--color-row-divider);
+.timetable tbody tr + tr > td {
+  border-top: var(--row-divider-width) solid var(--color-row-divider);
 }
 
 .timetable .meal-break td {
   height: 30px;
-  border-top: 1.5px solid var(--color-row-divider);
-  border-bottom: 1.5px solid var(--color-row-divider);
+  border-top: var(--row-divider-width) solid var(--color-row-divider);
+  border-bottom: var(--row-divider-width) solid var(--color-row-divider);
   background: var(--color-canvas);
 }
 

@@ -16,6 +16,7 @@ const CLASS_TIME_MAP = {
 const MEAL_BREAKS = new Set([4, 9]);
 const EXPORT_PADDING = 12;
 const PNG_EXPORT_SCALE = 4;
+const ROW_DIVIDER_WIDTH = 1.5;
 
 const EN2CN_NUM = ["一","二","三","四","五","六","日"];
 const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};
@@ -570,11 +571,16 @@ async function waitForFonts() {
   if (document.fonts?.ready) await document.fonts.ready;
 }
 
+function getRowDividerWidth(scale) {
+  return ROW_DIVIDER_WIDTH / scale;
+}
+
 function fitTableAspect(container, targetRatio = 1.15) {
   const table = container.querySelector(".timetable");
   if (!table) return;
 
   table.style.transform = "none";
+  table.style.removeProperty("--row-divider-width");
   container.style.height = "";
 
   const columns = table.querySelectorAll("col");
@@ -600,17 +606,17 @@ function fitTableDisplay(container) {
   if (!table) return;
 
   table.style.transform = "none";
-  const naturalWidth = table.offsetWidth;
-  const naturalHeight = table.offsetHeight;
-  const scale = Math.min(
-    1,
-    container.clientWidth / naturalWidth,
-    Math.max(320, window.innerHeight - 32) / naturalHeight,
-  );
+  table.style.removeProperty("--row-divider-width");
+  const maxHeight = Math.max(320, window.innerHeight - 32);
+  let scale;
+  for (let pass = 0; pass < 2; pass++) {
+    scale = Math.min(1, container.clientWidth / table.offsetWidth, maxHeight / table.offsetHeight);
+    table.style.setProperty("--row-divider-width", `${getRowDividerWidth(scale)}px`);
+  }
 
   table.style.transformOrigin = "top left";
   table.style.transform = `scale(${scale})`;
-  container.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+  container.style.height = `${Math.ceil(table.offsetHeight * scale)}px`;
 }
 
 function showStatus(msg, type = "") {
