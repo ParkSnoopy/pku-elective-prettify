@@ -577,6 +577,27 @@ test("display: keeps horizontal row dividers at full width when scaled", () => {
   eq((css.match(/var\(--row-divider-width\)/g) || []).length, 5);
 });
 
+test("export: draws every table line at one consistent weight", () => {
+  const calls = [];
+  const canvas = { getContext: () => ({
+    fillStyle: "",
+    setTransform: (...args) => calls.push(["transform", ...args]),
+    fillRect: (...args) => calls.push(args),
+  }) };
+  app.drawExportTableLines(
+    canvas,
+    { left: 12, top: 12, width: 100, height: 80 },
+    [12, 32, 52, 92],
+    "#92918d",
+    4,
+  );
+  eq(calls[0], ["transform", 1, 0, 0, 1, 0, 0]);
+  eq(calls.slice(1, 5).map(([, , width, height]) => [width, height]), [
+    [400, 4], [400, 4], [400, 4], [400, 4],
+  ]);
+  eq(calls.slice(5).map(([, , width, height]) => [width, height]), [[4, 320], [4, 320]]);
+});
+
 test("SVG export: wraps the rendered timetable in a self-contained image", () => {
   const svg = app.buildRasterSvg(1200, 800, "data:image/png;base64,fixture");
   ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"'));

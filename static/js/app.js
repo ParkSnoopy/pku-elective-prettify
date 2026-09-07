@@ -1416,6 +1416,22 @@ function buildRasterSvg(width, height, imageHref) {
     `preserveAspectRatio="none" href="${imageHref}"/></svg>`;
 }
 
+function drawExportTableLines(canvas, bounds, rowBoundaries, color, scale) {
+  const context = canvas.getContext("2d");
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  const lineWidth = Math.max(1, Math.round(ROW_DIVIDER_WIDTH * scale));
+  const left = Math.round(bounds.left * scale);
+  const top = Math.round(bounds.top * scale);
+  const width = Math.round(bounds.width * scale);
+  const height = Math.round(bounds.height * scale);
+  context.fillStyle = color;
+  rowBoundaries.forEach(boundary => {
+    context.fillRect(left, Math.round(boundary * scale - lineWidth / 2), width, lineWidth);
+  });
+  context.fillRect(Math.round(bounds.left * scale - lineWidth / 2), top, lineWidth, height);
+  context.fillRect(Math.round((bounds.left + bounds.width) * scale - lineWidth / 2), top, lineWidth, height);
+}
+
 async function renderTimetableCanvas(container, table) {
   await waitForFonts();
   fitTableAspect(container);
@@ -1436,7 +1452,23 @@ async function renderTimetableCanvas(container, table) {
     void staging.offsetHeight;
     const fullWidth = staging.offsetWidth;
     const fullHeight = staging.offsetHeight;
-    return await html2canvas(staging, {
+    const stagingRect = staging.getBoundingClientRect();
+    const tableRect = clone.getBoundingClientRect();
+    const bounds = {
+      left: tableRect.left - stagingRect.left,
+      top: tableRect.top - stagingRect.top,
+      width: tableRect.width,
+      height: tableRect.height,
+    };
+    const rowBoundaries = [bounds.top, ...Array.from(clone.rows, row =>
+      row.getBoundingClientRect().bottom - stagingRect.top,
+    )];
+    const lineColor = getComputedStyle(clone).getPropertyValue("--color-row-divider").trim();
+    clone.style.borderColor = "transparent";
+    clone.querySelectorAll("th, td").forEach(cell => {
+      cell.style.borderColor = "transparent";
+    });
+    const canvas = await html2canvas(staging, {
       backgroundColor: getComputedStyle(document.body).backgroundColor,
       scale: PNG_EXPORT_SCALE,
       width: fullWidth,
@@ -1444,6 +1476,8 @@ async function renderTimetableCanvas(container, table) {
       windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
       windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
     });
+    drawExportTableLines(canvas, bounds, rowBoundaries, lineColor, PNG_EXPORT_SCALE);
+    return canvas;
   } finally {
     staging.remove();
     fitTableDisplay(container);
