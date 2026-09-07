@@ -296,6 +296,55 @@ input[type="checkbox"] {
   color: var(--color-body);
 }
 
+.time-format-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: max-content;
+  cursor: pointer;
+}
+
+.time-format-switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.time-format-switch > span:not(.time-format-track) {
+  font-weight: 400;
+  color: var(--color-body);
+}
+
+.time-format-track {
+  width: 44px;
+  height: 24px;
+  padding: 2px;
+  border-radius: 12px;
+  background: var(--color-hairline);
+  transition: background 0.15s ease;
+}
+
+.time-format-track span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-canvas);
+  transition: transform 0.15s ease;
+}
+
+.time-format-switch input:checked + .time-format-track {
+  background: var(--color-primary);
+}
+
+.time-format-switch input:checked + .time-format-track span {
+  transform: translateX(20px);
+}
+
+.time-format-switch input:focus-visible + .time-format-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* ─── Buttons ─────────────────────────────────────────────── */
 
 .button-primary {
@@ -658,7 +707,7 @@ body:not(:has(.timetable)) .output-section {
 }
 
 .timetable .time-label .time-range {
-  font-family: var(--cell-font, "Noto Serif CJK SC", serif);
+  font-family: var(--font-mono);
   font-size: calc(var(--cell-font-size, 30px) - 14px);
   font-weight: 500;
   color: var(--color-muted);
@@ -775,6 +824,8 @@ body:not(:has(.timetable)) .output-section {
 
 @media (prefers-reduced-motion: reduce) {
   .button-spinner { animation-duration: 1.4s; }
+  .time-format-track,
+  .time-format-track span { transition: none; }
 }
 
 /* ─── Clickable cells ─────────────────────────────────────── */

@@ -13,6 +13,12 @@ const CLASS_TIME_MAP = {
   10: "18:40", 11: "19:40", 12: "20:40",
 };
 
+function formatClassTime(time, format = "24") {
+  if (!time || format !== "12") return time;
+  const [hour, minute] = time.split(":").map(Number);
+  return `${String(hour % 12 || 12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
+}
+
 const MEAL_BREAKS = new Set([4, 9]);
 const EXPORT_PADDING = 12;
 const PNG_EXPORT_SCALE = 4;
@@ -500,7 +506,7 @@ class CourseTable {
     for (let r = 0; r < rowLen; r++) {
       html.push('<tr class="period-row">');
       const period = r + 1;
-      const time = CLASS_TIME_MAP[period] || "";
+      const time = formatClassTime(CLASS_TIME_MAP[period] || "", this.options.timeFormat);
       html.push(
         `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}"><span class="period">${period}</span>` +
         `<span class="time-range">${time}</span></td>`
@@ -852,6 +858,11 @@ function init() {
   });
 
   genBtn.addEventListener("click", generate);
+  document.getElementById("time-format").addEventListener("change", (event) => {
+    if (!currentTable) return;
+    currentTable.options.timeFormat = event.target.checked ? "12" : "24";
+    rerenderTable();
+  });
 
   // Export buttons
   document.getElementById("export-svg-btn").addEventListener("click", exportSVG);
@@ -880,6 +891,7 @@ function generate() {
       const options = {
         palette: getCurrentPalette(),
         groupByClass: document.getElementById("group-by-class").checked,
+        timeFormat: document.getElementById("time-format").checked ? "12" : "24",
       };
 
       currentTable = new CourseTable(ws);
@@ -1291,7 +1303,7 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
   for (let periodIndex = 0; periodIndex < periodCount; periodIndex++) {
     const period = periodIndex + 1;
     const firstRow = 1 + periodIndex * 4;
-    const timeValues = ["", String(period), CLASS_TIME_MAP[period] || "", ""];
+    const timeValues = ["", String(period), formatClassTime(CLASS_TIME_MAP[period] || "", table.options.timeFormat), ""];
     const measuredPeriodHeight = dimensions.periodHeights?.[periodIndex];
     const defaultPeriodHeight = defaultRoleHeights.reduce((sum, height) => sum + height, 0);
     const heightScale = measuredPeriodHeight ? measuredPeriodHeight / defaultPeriodHeight : 1;
@@ -1305,6 +1317,7 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
       const isPeriodNumber = rowRole === 1;
       const timeFont = {
         ...xlsxTypography(table, "time", isPeriodNumber ? 0 : -14),
+        ...(rowRole === 2 ? { name: "Roboto Mono" } : {}),
         bold: isPeriodNumber,
         color: xlsxColor(isPeriodNumber ? XLSX_COLORS.ink : XLSX_COLORS.muted),
       };
