@@ -1,88 +1,32 @@
 /* ─── Vendored fonts ──────────────────────────────────────── */
 
 @font-face {
-  font-family: "Maple Mono";
-  src: url("../fonts/maple-mono-regular.woff2") format("woff2");
+  font-family: "Noto Sans CJK SC";
+  src: url("../fonts/NotoSansCJKsc-Regular.otf") format("opentype");
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Maple Mono";
-  src: url("../fonts/maple-mono-semibold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Maple Mono";
-  src: url("../fonts/maple-mono-medium.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Maple Mono";
-  src: url("../fonts/maple-mono-bold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Maple Mono";
-  src: url("../fonts/maple-mono-extrabold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Noto Sans Mono CJK SC";
-  src: url("../fonts/noto-sans-mono-cjk-sc-regular.otf") format("opentype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Noto Sans Mono CJK SC";
-  src: url("../fonts/noto-sans-mono-cjk-sc-bold.otf") format("opentype");
-  font-style: normal;
-  font-weight: 700;
   font-display: swap;
 }
 
 @font-face {
   font-family: "Noto Sans CJK SC";
-  src: url("../fonts/noto-sans-cjk-sc-vf.otf") format("opentype");
+  src: url("../fonts/NotoSansCJKsc-Bold.otf") format("opentype");
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 700;
   font-display: swap;
 }
 
 @font-face {
   font-family: "Noto Serif CJK SC";
-  src: url("../fonts/noto-serif-cjk-sc-vf.otf") format("opentype");
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto";
-  src: url("../fonts/roboto-latin-400.woff2") format("woff2");
+  src: url("../fonts/NotoSerifCJKsc-Regular.otf") format("opentype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Roboto";
-  src: url("../fonts/roboto-latin-700.woff2") format("woff2");
+  font-family: "Noto Serif CJK SC";
+  src: url("../fonts/NotoSerifCJKsc-Bold.otf") format("opentype");
   font-style: normal;
   font-weight: 700;
   font-display: swap;
@@ -90,33 +34,9 @@
 
 @font-face {
   font-family: "Roboto Mono";
-  src: url("../fonts/roboto-mono-latin-400.woff2") format("woff2");
+  src: url("../fonts/RobotoMono[wght].woff2") format("woff2");
   font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto Mono";
-  src: url("../fonts/roboto-mono-latin-700.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto Serif";
-  src: url("../fonts/roboto-serif-latin-400.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Roboto Serif";
-  src: url("../fonts/roboto-serif-latin-700.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
+  font-weight: 100 700;
   font-display: swap;
 }
 
@@ -140,7 +60,8 @@
   --color-surface-dark-soft: #1f1e1b;
   --color-hairline: #e6dfd8;
   --color-hairline-soft: #ebe6df;
-  --color-row-divider: #d2cac2;
+  --color-table-grid: #d6d6d3;
+  --color-row-divider: #92918d;
 
   /* Text */
   --color-ink: #141413;
@@ -159,10 +80,10 @@
 
   /* Radius */
   --rounded-xs: 4px;
-  --rounded-sm: 6px;
-  --rounded-md: 8px;
-  --rounded-lg: 12px;
-  --rounded-xl: 16px;
+  --rounded-sm: 4px;
+  --rounded-md: 4px;
+  --rounded-lg: 4px;
+  --rounded-xl: 4px;
   --rounded-pill: 9999px;
 
   /* Spacing */
@@ -176,9 +97,9 @@
   --space-section: 96px;
 
   /* Typography */
-  --font-display: ui-serif, Georgia, "Songti SC", "Noto Serif SC", serif;
-  --font-body: ui-sans-serif, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
-  --font-mono: "Maple Mono", "Noto Sans CJK SC", monospace;
+  --font-display: "Noto Serif CJK SC", serif;
+  --font-body: "Noto Sans CJK SC", sans-serif;
+  --font-mono: "Roboto Mono", "Noto Sans CJK SC", monospace;
 
   /* Shadows */
   --shadow-subtle: 0 1px 3px rgba(20, 20, 19, 0.08);
@@ -329,6 +250,24 @@ select {
   background: var(--color-canvas);
   cursor: pointer;
   height: 40px;
+}
+
+input[type="file"] {
+  height: 60px;
+  padding: 0 14px 0 0;
+  line-height: 58px;
+}
+
+input[type="file"]::file-selector-button {
+  height: 58px;
+  margin-right: 14px;
+  padding: 0 18px;
+  border: 0;
+  border-right: 1px solid var(--color-hairline);
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+  font: inherit;
+  cursor: pointer;
 }
 
 input[type="file"]:focus,
@@ -530,20 +469,40 @@ input[type="checkbox"] {
   padding: 6px 10px;
 }
 
-.inverse-color-toggle {
+.font-color-toggle {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-sm);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xxs);
+  justify-content: center;
   cursor: pointer;
-  color: var(--color-muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1;
-  white-space: nowrap;
 }
 
-.inverse-color-toggle input {
-  margin: 0;
+.font-color-toggle:hover {
+  background: var(--color-surface-soft);
+}
+
+.font-color-toggle:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.15);
+}
+
+.font-color-toggle[aria-pressed="true"] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-canvas);
+}
+
+.font-color-toggle svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .color-picker {
@@ -554,6 +513,11 @@ input[type="checkbox"] {
   cursor: pointer;
   padding: 0;
   background: none;
+  outline: none;
+}
+
+.color-picker:focus-visible {
+  box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.2);
 }
 
 .color-picker::-webkit-color-swatch-wrapper {
@@ -561,7 +525,12 @@ input[type="checkbox"] {
 }
 
 .color-picker::-webkit-color-swatch {
-  border: 1px solid var(--color-hairline);
+  border: none;
+  border-radius: var(--rounded-sm);
+}
+
+.color-picker::-moz-color-swatch {
+  border: none;
   border-radius: var(--rounded-sm);
 }
 
@@ -626,22 +595,40 @@ body:not(:has(.timetable)) .output-section {
 .timetable {
   border-collapse: collapse;
   table-layout: fixed;
-  border-radius: var(--rounded-lg);
+  border-radius: 0;
   outline: 2px solid var(--color-row-divider);
   outline-offset: -2px;
-  overflow: hidden;
   background: var(--color-canvas);
 }
 
 .timetable th,
 .timetable td {
-  border: 1px solid var(--color-hairline);
+  border: 1px solid var(--color-table-grid);
   padding: 0;
   vertical-align: middle;
 }
 
-.timetable tbody tr + tr > td {
+.timetable tbody .period-row + .period-row > td {
   border-top: 2px solid var(--color-row-divider);
+}
+
+.timetable .meal-break td {
+  height: 30px;
+  border-top: 2px solid var(--color-row-divider);
+  border-bottom: 2px solid var(--color-row-divider);
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.timetable .meal-break time {
+  margin-left: var(--space-xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0;
 }
 
 /* Corner cell */
@@ -671,7 +658,7 @@ body:not(:has(.timetable)) .output-section {
 }
 
 .timetable .time-label .period {
-  font-family: var(--cell-font, "Roboto Serif", "Noto Serif CJK SC", serif);
+  font-family: var(--cell-font, "Noto Serif CJK SC", serif);
   font-size: var(--cell-font-size, 30px);
   font-weight: 700;
   color: var(--color-ink);
@@ -680,7 +667,7 @@ body:not(:has(.timetable)) .output-section {
 }
 
 .timetable .time-label .time-range {
-  font-family: var(--cell-font, "Roboto Serif", "Noto Serif CJK SC", serif);
+  font-family: var(--cell-font, "Noto Serif CJK SC", serif);
   font-size: calc(var(--cell-font-size, 30px) - 14px);
   font-weight: 500;
   color: var(--color-muted);

@@ -313,20 +313,20 @@ test("typography: kind keys are independent", () => {
   eq(t.getTypography("time").fontFamily, "mono");
 });
 
-test("fonts: default is vendored Maple Mono", () => {
+test("fonts: only Noto Sans, Noto Serif, and Roboto Mono are exposed", () => {
   eq(app.DEFAULT_FONT_STYLE, "mono");
-  eq(app.DEFAULT_FONT_FAMILY, "maple");
-  ok(app.resolveFontFamily("mono", "maple").includes("Maple Mono"));
-  ok(app.resolveFontFamily("mono", "maple").includes("Noto Sans CJK SC"));
+  eq(app.DEFAULT_FONT_FAMILY, "roboto");
+  ok(app.resolveFontFamily("mono", "roboto").includes("Roboto Mono"));
+  ok(app.resolveFontFamily("mono", "roboto").includes("Noto Sans CJK SC"));
   eq(app.DEFAULT_FONT_STYLE_BY_KIND.time, "serif");
-  eq(app.DEFAULT_FONT_FAMILY_BY_KIND.time, "roboto");
+  eq(app.DEFAULT_FONT_FAMILY_BY_KIND.time, "noto");
   eq(app.DEFAULT_FONT_SIZE_BY_KIND.time, 30);
 });
 
-test("fonts: style selects expose compatible family choices", () => {
-  eq(app.getFontFamilyOptions("serif").map(([, key]) => key), ["noto", "roboto"]);
-  eq(app.getFontFamilyOptions("sans").map(([, key]) => key), ["noto", "roboto"]);
-  eq(app.getFontFamilyOptions("mono").map(([, key]) => key), ["maple", "noto", "roboto"]);
+test("fonts: each style maps to its sole bundled family", () => {
+  eq(app.getFontFamilyOptions("serif").map(([, key]) => key), ["noto"]);
+  eq(app.getFontFamilyOptions("sans").map(([, key]) => key), ["noto"]);
+  eq(app.getFontFamilyOptions("mono").map(([, key]) => key), ["roboto"]);
 });
 
 test("content edit: updates all cells with same original classname", () => {
@@ -431,7 +431,7 @@ test("render: populated cells always reserve cell-remain block", () => {
   ok(html.includes('>&nbsp;ClassX<span class="classroom-text">'));
 });
 
-test("inverse font color: applies to every cell assigned to palette color", () => {
+test("light font color: applies to every cell assigned to palette color", () => {
   const ws = [
     MOCK_HEADER,
     ["第一节", "ClassX(RoomA)(备注：) 每周", "ClassX(RoomB)(备注：) 每周", "ClassY(RoomC)(备注：) 每周", "", "", "", ""],
@@ -441,10 +441,25 @@ test("inverse font color: applies to every cell assigned to palette color", () =
   const palette = ["#111111", "#222222", "#333333", "#444444", "#555555"];
   t.render(palette);
   const targetLabel = t.getCell(0, 0).label;
-  app.inverseFontColorIndexes.add(targetLabel);
+  app.lightTextColorIndexes.add(targetLabel);
   const html = t.render(palette);
   eq((html.match(/inverse-font-color/g) || []).length, 2);
-  app.inverseFontColorIndexes.clear();
+  app.lightTextColorIndexes.clear();
+});
+
+test("render: inserts labeled meal breaks after periods 4 and 9", () => {
+  const ws = [MOCK_HEADER];
+  for (let period = 1; period <= 12; period++) {
+    ws.push([`第${period}节`, "", "", "", "", "", "", ""]);
+  }
+  const t = new CourseTable(ws);
+  t.prepare({ groupByClass: false });
+  const html = t.render(["#111111", "#222222", "#333333", "#444444", "#555555"]);
+  eq((html.match(/class="meal-break"/g) || []).length, 2);
+  ok(html.includes("Lunch"));
+  ok(html.includes("12:00–13:00"));
+  ok(html.includes("Dinner"));
+  ok(html.includes("18:00–18:40"));
 });
 
 test("XLSX export: worksheet mirrors timetable structure and styles", () => {
@@ -489,18 +504,18 @@ test("XLSX export: follows edited font family, type, size, and weight hierarchy"
     fontStyle: "serif", fontFamilyKey: "noto", fontFamily: "Noto Serif CJK SC", fontSize: 22,
   });
   t.setTypography("time", null, null, {
-    fontStyle: "mono", fontFamilyKey: "maple", fontFamily: "Maple Mono", fontSize: 32,
+    fontStyle: "mono", fontFamilyKey: "roboto", fontFamily: "Roboto Mono", fontSize: 32,
   });
   t.setTypography("course", null, null, {
-    fontStyle: "sans", fontFamilyKey: "roboto", fontFamily: "Roboto", fontSize: 20,
+    fontStyle: "sans", fontFamilyKey: "noto", fontFamily: "Noto Sans CJK SC", fontSize: 20,
   });
 
   const ws = app.buildStyledWorksheet(t, palette);
   eq(ws.B1.s.font.name, "Noto Serif CJK SC");
   eq(ws.B1.s.font.sz, 16.5);
-  eq(ws.A3.s.font.name, "Maple Mono");
+  eq(ws.A3.s.font.name, "Roboto Mono");
   eq(ws.A3.s.font.sz, 24);
-  eq(ws.B2.s.font.name, "Roboto");
+  eq(ws.B2.s.font.name, "Noto Sans CJK SC");
   eq(ws.B2.s.font.sz, 15);
   eq(ws.B2.s.font.bold, true);
   eq(ws.B3.s.font.sz, 12.75);

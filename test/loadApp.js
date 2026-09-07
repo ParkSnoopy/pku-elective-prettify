@@ -84,7 +84,8 @@ function loadApp() {
       FONT_FAMILY_OPTIONS,
       getFontFamilyOptions,
       resolveFontFamily,
-      inverseFontColorIndexes,
+      MEAL_BREAKS,
+      lightTextColorIndexes,
       buildStyledWorksheet,
     });
   `;

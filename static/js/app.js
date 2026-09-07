@@ -13,34 +13,35 @@ const CLASS_TIME_MAP = {
   10: "18:40", 11: "19:40", 12: "20:40",
 };
 
+const MEAL_BREAKS = {
+  4: { label: "Lunch", time: "12:00–13:00" },
+  9: { label: "Dinner", time: "18:00–18:40" },
+};
+
 const EN2CN_NUM = ["一","二","三","四","五","六","日"];
 const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};
 
 const DEFAULT_FONT_STYLE = "mono";
-const DEFAULT_FONT_FAMILY = "maple";
+const DEFAULT_FONT_FAMILY = "roboto";
 const DEFAULT_FONT_STYLE_BY_KIND = { corner: "mono", header: "mono", time: "serif", course: "mono" };
-const DEFAULT_FONT_FAMILY_BY_KIND = { corner: "maple", header: "maple", time: "roboto", course: "maple" };
+const DEFAULT_FONT_FAMILY_BY_KIND = { corner: "roboto", header: "roboto", time: "noto", course: "roboto" };
 const DEFAULT_FONT_SIZE_BY_KIND = { corner: 16, header: 20, time: 30, course: 18 };
 
 const FONT_STYLE_OPTIONS = [
-  ["Serif", "serif"],
-  ["Sans", "sans"],
-  ["Mono", "mono"],
+  ["Noto Serif", "serif"],
+  ["Noto Sans", "sans"],
+  ["Roboto Mono", "mono"],
 ];
 
 const FONT_FAMILY_OPTIONS = {
   serif: [
     ["Noto Serif", "noto", "'Noto Serif CJK SC', serif"],
-    ["Roboto Serif", "roboto", "'Roboto Serif', 'Noto Serif CJK SC', serif"],
   ],
   sans: [
     ["Noto Sans", "noto", "'Noto Sans CJK SC', sans-serif"],
-    ["Roboto", "roboto", "'Roboto', 'Noto Sans CJK SC', sans-serif"],
   ],
   mono: [
-    ["Maple Mono", "maple", "'Maple Mono', 'Noto Sans CJK SC', monospace"],
-    ["Noto Sans Mono", "noto", "'Noto Sans Mono CJK SC', monospace"],
-    ["Roboto Mono", "roboto", "'Roboto Mono', 'Noto Sans Mono CJK SC', monospace"],
+    ["Roboto Mono", "roboto", "'Roboto Mono', 'Noto Sans CJK SC', monospace"],
   ],
 };
 
@@ -451,7 +452,7 @@ class CourseTable {
     html.push("</tr></thead><tbody>");
 
     for (let r = 0; r < rowLen; r++) {
-      html.push("<tr>");
+      html.push('<tr class="period-row">');
       const period = r + 1;
       const time = CLASS_TIME_MAP[period] || "";
       html.push(
@@ -472,7 +473,7 @@ class CourseTable {
           const lightBg = lightenHex(bgColor);
           const upperBg = hexToRgba(bgColor, 0.85);
           const lowerBg = hexToRgba(lightBg, 0.5);
-          const inverseClass = inverseFontColorIndexes.has(cell.label)
+          const inverseClass = lightTextColorIndexes.has(cell.label)
             ? " inverse-font-color"
             : "";
 
@@ -500,6 +501,14 @@ class CourseTable {
         }
       }
       html.push("</tr>");
+      const mealBreak = MEAL_BREAKS[period];
+      if (mealBreak && period < rowLen) {
+        html.push(
+          `<tr class="meal-break" aria-label="${mealBreak.label}, ${mealBreak.time}">` +
+          `<td colspan="${colLen + 1}"><span>${mealBreak.label}</span>` +
+          `<time>${mealBreak.time}</time></td></tr>`
+        );
+      }
     }
 
     html.push("</tbody></table>");
@@ -574,7 +583,7 @@ let palettes = { ...DEFAULT_PALETTES };
 let currentPaletteKey = Object.keys(palettes)[0];
 let customColors = null; // array of hex strings when user edits
 let hasGenerated = false;
-const inverseFontColorIndexes = new Set();
+const lightTextColorIndexes = new Set();
 
 function getCurrentPalette() {
   if (currentPaletteKey === CUSTOM_KEY && customColors) {
@@ -643,7 +652,7 @@ function updatePaletteButton() {
 
 function selectPalette(key) {
   currentPaletteKey = key;
-  inverseFontColorIndexes.clear();
+  lightTextColorIndexes.clear();
   updatePaletteButton();
   renderColorEditor();
 }
@@ -681,21 +690,27 @@ function renderColorEditor() {
     hexInput.dataset.index = i;
     hexInput.maxLength = 7;
 
-    const inverseLabel = document.createElement("label");
-    inverseLabel.className = "inverse-color-toggle";
-    inverseLabel.title = "Inverse font color";
-    const inverseInput = document.createElement("input");
-    inverseInput.type = "checkbox";
-    inverseInput.checked = inverseFontColorIndexes.has(i);
-    inverseInput.setAttribute("aria-label", `Inverse font color for ${color.toUpperCase()}`);
-    const inverseText = document.createElement("span");
-    inverseText.textContent = "Aa";
-    inverseLabel.appendChild(inverseInput);
-    inverseLabel.appendChild(inverseText);
+    const textColorButton = document.createElement("button");
+    textColorButton.type = "button";
+    textColorButton.className = "font-color-toggle";
+    textColorButton.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>' +
+      '<path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor"/></svg>';
+
+    function updateTextColorButton() {
+      const usesLightText = lightTextColorIndexes.has(i);
+      const action = usesLightText ? "Use dark text" : "Use light text";
+      textColorButton.setAttribute("aria-pressed", String(usesLightText));
+      textColorButton.setAttribute("aria-label", `${action} on ${picker.value.toUpperCase()}`);
+      textColorButton.title = `${action} on this color`;
+    }
+    updateTextColorButton();
 
     picker.addEventListener("input", () => {
       editColor(i, picker.value);
       hexInput.value = picker.value.toUpperCase();
+      updateTextColorButton();
     });
 
     hexInput.addEventListener("change", () => {
@@ -704,20 +719,22 @@ function renderColorEditor() {
       if (isValidHex(v)) {
         editColor(i, v);
         picker.value = v;
+        updateTextColorButton();
       } else {
         hexInput.value = colors[i].toUpperCase();
       }
     });
 
-    inverseInput.addEventListener("change", () => {
-      if (inverseInput.checked) inverseFontColorIndexes.add(i);
-      else inverseFontColorIndexes.delete(i);
+    textColorButton.addEventListener("click", () => {
+      if (lightTextColorIndexes.has(i)) lightTextColorIndexes.delete(i);
+      else lightTextColorIndexes.add(i);
+      updateTextColorButton();
       if (currentTable) rerenderTable();
     });
 
     wrapper.appendChild(picker);
     wrapper.appendChild(hexInput);
-    wrapper.appendChild(inverseLabel);
+    wrapper.appendChild(textColorButton);
     editor.appendChild(wrapper);
   });
 }
@@ -947,7 +964,7 @@ function openEditModal({ cell, kind, row, col, element }) {
   const styleGroup = document.createElement("div");
   styleGroup.className = "modal-field";
   const styleLabel = document.createElement("label");
-  styleLabel.textContent = "Font style";
+  styleLabel.textContent = "Typeface";
   const styleSelect = document.createElement("select");
   for (const [label, value] of FONT_STYLE_OPTIONS) {
     const option = document.createElement("option");
@@ -959,33 +976,6 @@ function openEditModal({ cell, kind, row, col, element }) {
   styleGroup.appendChild(styleLabel);
   styleGroup.appendChild(styleSelect);
   card.appendChild(styleGroup);
-
-  const familyGroup = document.createElement("div");
-  familyGroup.className = "modal-field";
-  const familyLabel = document.createElement("label");
-  familyLabel.textContent = "Font family";
-  const familySelect = document.createElement("select");
-
-  function populateFamilySelect(preferredKey) {
-    familySelect.replaceChildren();
-    const options = getFontFamilyOptions(styleSelect.value);
-    for (const [label, key] of options) {
-      const option = document.createElement("option");
-      option.textContent = label;
-      option.value = key;
-      familySelect.appendChild(option);
-    }
-    const validPreferred = options.some(([, key]) => key === preferredKey);
-    familySelect.value = validPreferred ? preferredKey : options[0][1];
-  }
-
-  populateFamilySelect(typography?.fontFamilyKey || DEFAULT_FONT_FAMILY_BY_KIND[kind] || DEFAULT_FONT_FAMILY);
-  styleSelect.addEventListener("change", () => {
-    populateFamilySelect(familySelect.value);
-  });
-  familyGroup.appendChild(familyLabel);
-  familyGroup.appendChild(familySelect);
-  card.appendChild(familyGroup);
 
   const sizeGroup = document.createElement("div");
   sizeGroup.className = "modal-field";
@@ -1009,7 +999,7 @@ function openEditModal({ cell, kind, row, col, element }) {
   saveFontBtn.textContent = "Save font";
   saveFontBtn.addEventListener("click", () => {
     const fontStyle = styleSelect.value;
-    const fontFamilyKey = familySelect.value;
+    const fontFamilyKey = getFontFamilyOptions(fontStyle)[0][1];
     currentTable.setTypography(kind, row, col, {
       fontStyle,
       fontFamilyKey,
@@ -1065,8 +1055,8 @@ async function rerenderTable() {
 const XLSX_COLORS = {
   canvas: "FAF9F5",
   cream: "E8E0D2",
-  hairline: "E6DFD8",
-  divider: "D2CAC2",
+  hairline: "D6D6D3",
+  divider: "92918D",
   ink: "141413",
   body: "3D3D3A",
   muted: "6C6A64",
@@ -1094,15 +1084,9 @@ function xlsxColor(hex) {
 }
 
 function xlsxFontName(fontStyle, fontFamilyKey) {
-  if (fontFamilyKey === "maple") return "Maple Mono";
-  if (fontFamilyKey === "noto") {
-    if (fontStyle === "serif") return "Noto Serif CJK SC";
-    if (fontStyle === "mono") return "Noto Sans Mono CJK SC";
-    return "Noto Sans CJK SC";
-  }
-  if (fontStyle === "serif") return "Roboto Serif";
-  if (fontStyle === "mono") return "Roboto Mono";
-  return "Roboto";
+  if (fontStyle === "serif") return "Noto Serif CJK SC";
+  if (fontStyle === "sans") return "Noto Sans CJK SC";
+  return "Roboto Mono";
 }
 
 function xlsxTypography(table, kind, sizeOffset = 0) {
@@ -1222,7 +1206,7 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
         const baseColor = palette[cell.label] || "#FFFFFF";
         upperFill = blendHexColors(baseColor, `#${XLSX_COLORS.canvas}`, 0.85);
         lowerFill = blendHexColors(lightenHex(baseColor), `#${XLSX_COLORS.canvas}`, 0.5);
-        inverse = inverseFontColorIndexes.has(cell.label);
+        inverse = lightTextColorIndexes.has(cell.label);
         const classroomParts = [cell.classroom, cell.frequency].filter(Boolean);
         values = [
           cell.classname || "",
@@ -1266,7 +1250,7 @@ function measureTimetableForXlsx() {
   return {
     columnWidths: Array.from(table.querySelectorAll("col")).map(column => column.offsetWidth),
     headerHeight: table.tHead?.rows[0]?.offsetHeight,
-    periodHeights: Array.from(table.tBodies[0]?.rows || []).map(row => row.offsetHeight),
+    periodHeights: Array.from(table.querySelectorAll("tbody .period-row")).map(row => row.offsetHeight),
   };
 }
 
@@ -1315,9 +1299,8 @@ async function exportPNG() {
       await waitForFonts();
       fitTableAspect(container);
 
-      const margin = 12;
       const staging = document.createElement("div");
-      staging.style.cssText = `position:fixed;left:-100000px;top:0;padding:${margin}px;` +
+      staging.style.cssText = "position:fixed;left:-100000px;top:0;padding:0;" +
         `background:${getComputedStyle(document.body).backgroundColor};display:inline-block;`;
       const clone = table.cloneNode(true);
       clone.style.transform = "none";
