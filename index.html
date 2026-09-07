@@ -53,19 +53,32 @@
           </label>
         </div>
 
-        <div class="control-group">
-          <label id="time-format-label">Time format</label>
-          <label class="time-format-switch">
-            <span>24-hour</span>
-            <input type="checkbox" id="time-format" role="switch" aria-labelledby="time-format-label">
-            <span class="time-format-track" aria-hidden="true"><span></span></span>
-            <span>12-hour</span>
-          </label>
-        </div>
       </div>
 
       <!-- Color editor -->
       <div class="color-editor" id="color-editor"></div>
+
+      <div class="time-options">
+        <div class="control-group">
+          <label id="time-format-label">Time format</label>
+          <label class="option-switch">
+            <span>24-hour</span>
+            <input type="checkbox" id="time-format" role="switch" aria-labelledby="time-format-label">
+            <span class="switch-track" aria-hidden="true"><span></span></span>
+            <span>12-hour</span>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <label id="zero-padding-label">Hour padding</label>
+          <label class="option-switch">
+            <span>Off</span>
+            <input type="checkbox" id="zero-padding" role="switch" aria-labelledby="zero-padding-label" checked>
+            <span class="switch-track" aria-hidden="true"><span></span></span>
+            <span>On</span>
+          </label>
+        </div>
+      </div>
 
       <!-- Generate button -->
       <div class="generate-row">

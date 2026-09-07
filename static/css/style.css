@@ -296,7 +296,14 @@ input[type="checkbox"] {
   color: var(--color-body);
 }
 
-.time-format-switch {
+.time-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xl);
+  margin-top: var(--space-lg);
+}
+
+.option-switch {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -304,17 +311,17 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
-.time-format-switch input {
+.option-switch input {
   position: absolute;
   opacity: 0;
 }
 
-.time-format-switch > span:not(.time-format-track) {
+.option-switch > span:not(.switch-track) {
   font-weight: 400;
   color: var(--color-body);
 }
 
-.time-format-track {
+.switch-track {
   width: 44px;
   height: 24px;
   padding: 2px;
@@ -323,7 +330,7 @@ input[type="checkbox"] {
   transition: background 0.15s ease;
 }
 
-.time-format-track span {
+.switch-track span {
   display: block;
   width: 20px;
   height: 20px;
@@ -332,15 +339,15 @@ input[type="checkbox"] {
   transition: transform 0.15s ease;
 }
 
-.time-format-switch input:checked + .time-format-track {
+.option-switch input:checked + .switch-track {
   background: var(--color-primary);
 }
 
-.time-format-switch input:checked + .time-format-track span {
+.option-switch input:checked + .switch-track span {
   transform: translateX(20px);
 }
 
-.time-format-switch input:focus-visible + .time-format-track {
+.option-switch input:focus-visible + .switch-track {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -674,8 +681,8 @@ body:not(:has(.timetable)) .output-section {
 /* Corner cell */
 .timetable .corner {
   background: var(--color-surface-cream-strong);
-  width: 80px;
-  min-width: 80px;
+  width: 120px;
+  min-width: 120px;
 }
 
 /* Day header row */
@@ -824,8 +831,8 @@ body:not(:has(.timetable)) .output-section {
 
 @media (prefers-reduced-motion: reduce) {
   .button-spinner { animation-duration: 1.4s; }
-  .time-format-track,
-  .time-format-track span { transition: none; }
+  .switch-track,
+  .switch-track span { transition: none; }
 }
 
 /* ─── Clickable cells ─────────────────────────────────────── */

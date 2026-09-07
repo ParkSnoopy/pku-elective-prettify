@@ -566,24 +566,34 @@ test("CLASS_TIME_MAP: start-time-only format", () => {
   }
 });
 
+test("index column: uses the expanded 120px width", () => {
+  eq(app.INDEX_COLUMN_WIDTH, 120);
+  const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
+  t.prepare({ groupByClass: false });
+  ok(t.render(["#111111"]).includes('<col style="width:120px">'));
+  eq(app.buildStyledWorksheet(t, ["#111111"])["!cols"][0].wpx, 120);
+});
+
 test("formatClassTime: supports 24-hour and zero-padded 12-hour labels", () => {
   eq(app.formatClassTime("08:00", "24"), "08:00");
+  eq(app.formatClassTime("08:00", "24", false), "8:00");
   eq(app.formatClassTime("08:00", "12"), "08:00 AM");
   eq(app.formatClassTime("13:00", "12"), "01:00 PM");
   eq(app.formatClassTime("18:40", "12"), "06:40 PM");
+  eq(app.formatClassTime("18:40", "12", false), "6:40 PM");
 });
 
-test("render: applies the selected 12-hour format to index times", () => {
+test("render: applies the selected format and hour padding to index times", () => {
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
-  t.prepare({ groupByClass: false, timeFormat: "12" });
-  ok(t.render(["#111111"]).includes('<span class="time-range">08:00 AM</span>'));
+  t.prepare({ groupByClass: false, timeFormat: "12", zeroPadding: false });
+  ok(t.render(["#111111"]).includes('<span class="time-range">8:00 AM</span>'));
 });
 
 test("XLSX export: applies the selected time format to index times", () => {
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
-  t.prepare({ groupByClass: false, timeFormat: "12" });
+  t.prepare({ groupByClass: false, timeFormat: "12", zeroPadding: false });
   const ws = app.buildStyledWorksheet(t, ["#111111"]);
-  eq(ws.A4.v, "08:00 AM");
+  eq(ws.A4.v, "8:00 AM");
   eq(ws.A3.s.font.name, "Noto Serif CJK SC");
   eq(ws.A4.s.font.name, "Roboto Mono");
 });

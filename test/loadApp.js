@@ -87,6 +87,7 @@ function loadApp() {
       resolveFontFamily,
       MEAL_BREAKS,
       PNG_EXPORT_SCALE,
+      INDEX_COLUMN_WIDTH,
       getRowDividerWidth,
       drawExportTableLines,
       lightTextColorIndexes,

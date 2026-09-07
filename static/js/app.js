@@ -13,16 +13,19 @@ const CLASS_TIME_MAP = {
   10: "18:40", 11: "19:40", 12: "20:40",
 };
 
-function formatClassTime(time, format = "24") {
-  if (!time || format !== "12") return time;
+function formatClassTime(time, format = "24", zeroPadding = true) {
+  if (!time) return time;
   const [hour, minute] = time.split(":").map(Number);
-  return `${String(hour % 12 || 12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${hour < 12 ? "AM" : "PM"}`;
+  const displayHour = format === "12" ? hour % 12 || 12 : hour;
+  const hourText = zeroPadding ? String(displayHour).padStart(2, "0") : String(displayHour);
+  return `${hourText}:${String(minute).padStart(2, "0")}${format === "12" ? ` ${hour < 12 ? "AM" : "PM"}` : ""}`;
 }
 
 const MEAL_BREAKS = new Set([4, 9]);
 const EXPORT_PADDING = 12;
 const PNG_EXPORT_SCALE = 4;
 const ROW_DIVIDER_WIDTH = 1;
+const INDEX_COLUMN_WIDTH = 120;
 
 const EN2CN_NUM = ["一","二","三","四","五","六","日"];
 const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};
@@ -491,7 +494,7 @@ class CourseTable {
 
     html.push('<table class="timetable">');
     html.push(`<colgroup>`);
-    html.push('<col style="width:80px">');
+    html.push(`<col style="width:${INDEX_COLUMN_WIDTH}px">`);
     for (let c = 0; c < colLen; c++) {
       html.push(`<col style="width:${cellW}px">`);
     }
@@ -506,7 +509,7 @@ class CourseTable {
     for (let r = 0; r < rowLen; r++) {
       html.push('<tr class="period-row">');
       const period = r + 1;
-      const time = formatClassTime(CLASS_TIME_MAP[period] || "", this.options.timeFormat);
+      const time = formatClassTime(CLASS_TIME_MAP[period] || "", this.options.timeFormat, this.options.zeroPadding);
       html.push(
         `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}"><span class="period">${period}</span>` +
         `<span class="time-range">${time}</span></td>`
@@ -593,7 +596,7 @@ function fitTableAspect(container, targetRatio = 1.15) {
   const courseColumns = Array.from(columns).slice(1);
   if (courseColumns.length === 0) return;
 
-  const indexWidth = 80;
+  const indexWidth = INDEX_COLUMN_WIDTH;
   for (let pass = 0; pass < 4; pass++) {
     const tableHeight = table.getBoundingClientRect().height;
     const desiredCellWidth = Math.round(
@@ -858,11 +861,14 @@ function init() {
   });
 
   genBtn.addEventListener("click", generate);
-  document.getElementById("time-format").addEventListener("change", (event) => {
+  const updateTimeOptions = () => {
     if (!currentTable) return;
-    currentTable.options.timeFormat = event.target.checked ? "12" : "24";
+    currentTable.options.timeFormat = document.getElementById("time-format").checked ? "12" : "24";
+    currentTable.options.zeroPadding = document.getElementById("zero-padding").checked;
     rerenderTable();
-  });
+  };
+  document.getElementById("time-format").addEventListener("change", updateTimeOptions);
+  document.getElementById("zero-padding").addEventListener("change", updateTimeOptions);
 
   // Export buttons
   document.getElementById("export-svg-btn").addEventListener("click", exportSVG);
@@ -892,6 +898,7 @@ function generate() {
         palette: getCurrentPalette(),
         groupByClass: document.getElementById("group-by-class").checked,
         timeFormat: document.getElementById("time-format").checked ? "12" : "24",
+        zeroPadding: document.getElementById("zero-padding").checked,
       };
 
       currentTable = new CourseTable(ws);
@@ -1272,7 +1279,7 @@ function setXlsxCell(worksheet, row, column, value, style) {
 function buildStyledWorksheet(table, palette, dimensions = {}) {
   const [periodCount, dayCount] = table.shape();
   const columnCount = dayCount + 1;
-  const columnWidths = dimensions.columnWidths || [80, ...Array(dayCount).fill(180)];
+  const columnWidths = dimensions.columnWidths || [INDEX_COLUMN_WIDTH, ...Array(dayCount).fill(180)];
   const worksheet = {
     "!ref": `A1:${encodeXlsxColumn(columnCount - 1)}${1 + periodCount * 4}`,
     "!cols": columnWidths.map(width => ({ wpx: width })),
@@ -1303,7 +1310,9 @@ function buildStyledWorksheet(table, palette, dimensions = {}) {
   for (let periodIndex = 0; periodIndex < periodCount; periodIndex++) {
     const period = periodIndex + 1;
     const firstRow = 1 + periodIndex * 4;
-    const timeValues = ["", String(period), formatClassTime(CLASS_TIME_MAP[period] || "", table.options.timeFormat), ""];
+    const timeValues = ["", String(period), formatClassTime(
+      CLASS_TIME_MAP[period] || "", table.options.timeFormat, table.options.zeroPadding,
+    ), ""];
     const measuredPeriodHeight = dimensions.periodHeights?.[periodIndex];
     const defaultPeriodHeight = defaultRoleHeights.reduce((sum, height) => sum + height, 0);
     const heightScale = measuredPeriodHeight ? measuredPeriodHeight / defaultPeriodHeight : 1;
