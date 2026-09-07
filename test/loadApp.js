@@ -85,6 +85,7 @@ function loadApp() {
       getFontFamilyOptions,
       resolveFontFamily,
       MEAL_BREAKS,
+      PNG_EXPORT_SCALE,
       lightTextColorIndexes,
       buildStyledWorksheet,
     });

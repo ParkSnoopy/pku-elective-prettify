@@ -531,6 +531,10 @@ test("CLASS_TIME_MAP: start-time-only format", () => {
   }
 });
 
+test("PNG export: renders at four times CSS resolution", () => {
+  eq(app.PNG_EXPORT_SCALE, 4);
+});
+
 test("EN2CN_NUM has 7 entries", () => {
   eq(EN2CN_NUM.length, 7);
 });
