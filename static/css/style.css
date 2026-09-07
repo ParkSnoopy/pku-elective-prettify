@@ -703,6 +703,15 @@ body:not(:has(.timetable)) .output-section {
   text-align: center;
   vertical-align: middle;
   position: relative;
+  height: 100px;
+}
+
+.timetable .time-label-layout {
+  position: absolute;
+  inset: 10px 0;
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
+  row-gap: 6px;
 }
 
 .timetable .time-label .period {
@@ -712,11 +721,7 @@ body:not(:has(.timetable)) .output-section {
   font-weight: 700;
   color: var(--color-ink);
   display: block;
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  transform: translateY(-50%);
+  grid-row: 2;
 }
 
 .timetable .time-label .time-range {
@@ -726,13 +731,10 @@ body:not(:has(.timetable)) .output-section {
   line-height: 1;
   font-weight: 500;
   color: var(--color-muted);
-  position: absolute;
-  left: 0;
-  width: 100%;
 }
 
-.timetable .time-label .start-time { top: 6px; }
-.timetable .time-label .end-time { bottom: 6px; }
+.timetable .time-label .start-time { align-self: start; }
+.timetable .time-label .end-time { align-self: end; }
 
 /* Course cells */
 .timetable .cell {

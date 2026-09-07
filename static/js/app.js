@@ -521,8 +521,8 @@ class CourseTable {
       const formattedEnd = formatClassTime(getClassEndTime(startTime), this.options.timeFormat, this.options.zeroPadding);
       html.push(
         `<td class="time-label editable-cell" data-kind="time" data-row="${r}" style="${this._typographyStyle("time", r)}">` +
-        `<span class="time-range start-time">${formattedStart}</span><span class="period">${period}</span>` +
-        `<span class="time-range end-time">${formattedEnd}</span></td>`
+        `<span class="time-label-layout"><span class="time-range start-time">${formattedStart}</span>` +
+        `<span class="period">${period}</span><span class="time-range end-time">${formattedEnd}</span></span></td>`
       );
       for (let c = 0; c < colLen; c++) {
         const cell = this.getCell(r, c);

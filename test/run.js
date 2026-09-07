@@ -594,6 +594,7 @@ test("render: applies the selected format and hour padding to index times", () =
   const t = new CourseTable([MOCK_HEADER, ["第一节", "", "", "", "", "", "", ""]]);
   t.prepare({ groupByClass: false, timeFormat: "12", zeroPadding: false });
   const html = t.render(["#111111"]);
+  ok(html.includes('<span class="time-label-layout">'));
   const start = html.indexOf('<span class="time-range start-time">8:00 AM</span>');
   const index = html.indexOf('<span class="period">1</span>');
   const end = html.indexOf('<span class="time-range end-time">8:50 AM</span>');
