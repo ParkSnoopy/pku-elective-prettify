@@ -570,6 +570,13 @@ test("PNG export: renders at four times CSS resolution", () => {
   eq(app.PNG_EXPORT_SCALE, 4);
 });
 
+test("SVG export: wraps the rendered timetable in a self-contained image", () => {
+  const svg = app.buildRasterSvg(1200, 800, "data:image/png;base64,fixture");
+  ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"'));
+  ok(svg.includes('viewBox="0 0 1200 800"'));
+  ok(svg.includes('href="data:image/png;base64,fixture"'));
+});
+
 test("EN2CN_NUM has 7 entries", () => {
   eq(EN2CN_NUM.length, 7);
 });

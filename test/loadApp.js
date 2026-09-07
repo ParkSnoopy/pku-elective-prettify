@@ -89,6 +89,7 @@ function loadApp() {
       lightTextColorIndexes,
       classroomSelections,
       getRememberedClassroom,
+      buildRasterSvg,
       buildStyledWorksheet,
     });
   `;

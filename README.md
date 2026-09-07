@@ -11,7 +11,7 @@ Turn the `schedule.xls` exported from [elective.pku.edu.cn](https://elective.pku
 3. Select the downloaded file, choose a palette, and generate the timetable.
 4. If prompted, select the classroom for a class with multiple choices.
 5. Click a timetable cell to edit its content or typography when needed.
-6. Export the result as PNG or XLSX.
+6. Export the result as SVG, PNG, or XLSX.
 
 ## Support
 

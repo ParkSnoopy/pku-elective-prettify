@@ -848,6 +848,7 @@ function init() {
   genBtn.addEventListener("click", generate);
 
   // Export buttons
+  document.getElementById("export-svg-btn").addEventListener("click", exportSVG);
   document.getElementById("export-png-btn").addEventListener("click", exportPNG);
   document.getElementById("export-xlsx-btn").addEventListener("click", exportXLSX);
 
@@ -1403,6 +1404,64 @@ async function withExportBusy(button, busyLabel, task) {
   }
 }
 
+function buildRasterSvg(width, height, imageHref) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
+    `viewBox="0 0 ${width} ${height}"><image width="${width}" height="${height}" ` +
+    `preserveAspectRatio="none" href="${imageHref}"/></svg>`;
+}
+
+async function renderTimetableCanvas(container, table) {
+  await waitForFonts();
+  fitTableAspect(container);
+
+  const tableWidth = table.offsetWidth;
+  const tableHeight = table.offsetHeight;
+  const staging = document.createElement("div");
+  staging.style.cssText = `position:fixed;left:-100000px;top:0;box-sizing:content-box;` +
+    `width:${tableWidth}px;height:${tableHeight}px;padding:${EXPORT_PADDING}px;` +
+    `background:${getComputedStyle(document.body).backgroundColor};`;
+  const clone = table.cloneNode(true);
+  clone.style.transform = "none";
+  clone.style.height = "auto";
+  staging.appendChild(clone);
+  document.body.appendChild(staging);
+
+  try {
+    void staging.offsetHeight;
+    const fullWidth = staging.offsetWidth;
+    const fullHeight = staging.offsetHeight;
+    return await html2canvas(staging, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor,
+      scale: PNG_EXPORT_SCALE,
+      width: fullWidth,
+      height: fullHeight,
+      windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
+      windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
+    });
+  } finally {
+    staging.remove();
+    fitTableDisplay(container);
+  }
+}
+
+async function exportSVG() {
+  const container = document.getElementById("table-container");
+  const table = container.querySelector(".timetable");
+  if (!table) return;
+
+  const button = document.getElementById("export-svg-btn");
+  try {
+    await withExportBusy(button, "Building SVG…", async () => {
+      const canvas = await renderTimetableCanvas(container, table);
+      const source = buildRasterSvg(canvas.width, canvas.height, canvas.toDataURL("image/png"));
+      downloadBlob(new Blob([source], { type: "image/svg+xml;charset=utf-8" }), "timetable.svg");
+    });
+  } catch (err) {
+    showStatus("SVG 导出失败: " + err.message, "error");
+    console.error(err);
+  }
+}
+
 async function exportPNG() {
   const container = document.getElementById("table-container");
   const table = container.querySelector(".timetable");
@@ -1411,41 +1470,11 @@ async function exportPNG() {
   const button = document.getElementById("export-png-btn");
   try {
     await withExportBusy(button, "Building PNG…", async () => {
-      await waitForFonts();
-      fitTableAspect(container);
-
-      const tableWidth = table.offsetWidth;
-      const tableHeight = table.offsetHeight;
-      const staging = document.createElement("div");
-      staging.style.cssText = `position:fixed;left:-100000px;top:0;box-sizing:content-box;` +
-        `width:${tableWidth}px;height:${tableHeight}px;padding:${EXPORT_PADDING}px;` +
-        `background:${getComputedStyle(document.body).backgroundColor};`;
-      const clone = table.cloneNode(true);
-      clone.style.transform = "none";
-      clone.style.height = "auto";
-      staging.appendChild(clone);
-      document.body.appendChild(staging);
-
-      try {
-        void staging.offsetHeight;
-        const fullWidth = staging.offsetWidth;
-        const fullHeight = staging.offsetHeight;
-        const canvas = await html2canvas(staging, {
-          backgroundColor: getComputedStyle(document.body).backgroundColor,
-          scale: PNG_EXPORT_SCALE,
-          width: fullWidth,
-          height: fullHeight,
-          windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
-          windowHeight: Math.max(document.documentElement.clientHeight, fullHeight),
-        });
-        const blob = await new Promise((resolve, reject) => {
-          canvas.toBlob(result => result ? resolve(result) : reject(new Error("Canvas encoding failed")));
-        });
-        downloadBlob(blob, "timetable.png");
-      } finally {
-        staging.remove();
-        fitTableDisplay(container);
-      }
+      const canvas = await renderTimetableCanvas(container, table);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(result => result ? resolve(result) : reject(new Error("Canvas encoding failed")));
+      });
+      downloadBlob(blob, "timetable.png");
     });
   } catch (err) {
     showStatus("PNG 导出失败: " + err.message, "error");
