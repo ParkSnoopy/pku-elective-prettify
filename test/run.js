@@ -2,6 +2,9 @@
 // throws on failure. Run: node test/run.js
 
 const tests = [];
+const fs = require("fs");
+const path = require("path");
+const XLSX = require("../static/js/xlsx-js-style.min.js");
 function test(name, fn) { tests.push({ name, fn }); }
 
 function eq(actual, expected, msg = "") {
@@ -249,6 +252,30 @@ test("_parseXitike form 02", () => {
   const cell = new CourseCell(0, 0, null, undefined, null, true);
   const r = cell._parseXitike("习题课每周二10-11节，教室：一教303、二教317");
   eq(r, { freq: "每周", time: "周二10-11", classroom: "一教303、二教317" });
+});
+
+test("_parseXitike: latest duplicated 周 and tilde range", () => {
+  const cell = new CourseCell(0, 0, null, undefined, null, true);
+  const r = cell._parseXitike("习题课上课时间：每周周二10~11节，上课教室：二教412、三教208、三教508");
+  eq(r, { freq: "每周", time: "周二10-11", classroom: "二教412、三教208、三教508" });
+});
+
+test("latest sample: prompts once for exercise classroom and applies selection", () => {
+  const samplePath = path.join(__dirname, "..", "schedule.sample.xls");
+  const workbook = XLSX.read(fs.readFileSync(samplePath), { type: "buffer" });
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+    header: 1,
+    defval: "",
+  });
+  const table = new CourseTable(rows);
+  const requests = table.getClassroomChoiceRequests();
+  eq(requests.length, 1);
+  eq(requests[0].classname, "高等数学 (B) (一) 习题课");
+  eq(requests[0].options, ["二教412", "三教208", "三教508", "暂无"]);
+
+  table.selectClassroom(requests[0], "三教208");
+  eq(table.getCell(9, 1).classroom, "三教208");
+  eq(table.getCell(10, 1).classroom, "三教208");
 });
 
 // ─── Color helpers ─────────────────────────────────────────

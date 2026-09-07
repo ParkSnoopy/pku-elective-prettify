@@ -220,53 +220,34 @@ class CourseCell {
   }
 
   _parseXitike(note) {
-    try {
-      let n = note.replace("习题课","").replace(/ /g,"").replace(/：/g,"").replace(/，/g,"")
-        .replace("上课时间"," ").replace("上课教室"," ").trim();
-      const m = n.match(/[每单双]/);
-      if (!m) throw new Error("no freq");
-      const insert = m.index + 1;
-      n = n.slice(0, insert) + " " + n.slice(insert);
-      const parts = n.split(" ").filter(s => s !== "").map(e => e.length <= 1 ? e + "周" : e);
-      if (parts.length < 3) throw new Error("incomplete");
-      return { freq: parts[0], time: parts[1], classroom: parts[2] };
-    } catch (e1) {
-      let n = note.replace("习题课","").replace(/ /g,"").replace(/：/g,"").replace(/，/g,"")
-        .replace("节","").replace("上课","").replace("时间"," ").replace("教室"," ").trim();
-      const m = n.match(/[每单双]/);
-      if (!m) throw e1;
-      const insert = m.index + 1;
-      n = n.slice(0, insert) + " " + n.slice(insert);
-      const parts = n.split(" ").filter(s => s !== "").map(e => e.length <= 1 ? e + "周" : e);
-      if (parts.length < 3) throw e1;
-      return { freq: parts[0], time: parts[1], classroom: parts[2] };
-    }
+    const timeMatch = note.match(
+      /(每周|单周|双周)\s*周?([一二三四五六日])\s*(\d{1,2})(?:\s*[-~～—–至]\s*(\d{1,2}))?\s*节?/
+    );
+    const classroomMatch = note.match(/(?:上课)?教室\s*[：:]\s*([^；;]+)/);
+    if (!timeMatch || !classroomMatch) throw new Error("incomplete exercise class information");
+
+    const [, freq, day, firstPeriod, lastPeriod = firstPeriod] = timeMatch;
+    const classroom = classroomMatch[1].replace(/[，,。\s]+$/, "").trim();
+    return {
+      freq,
+      time: `周${day}${firstPeriod}-${lastPeriod}`,
+      classroom,
+    };
   }
 
   _addPostAppendCell(table, nameEx, freqRaw, timeRaw, classroomRaw) {
     const classname = this.classname + nameEx;
-    const classroom = classroomRaw.split("、")[0];
-    const m = timeRaw.match(/周./);
-    if (!m) return;
-    const sepIdx = m.index + m[0].length;
-    const colRaw = timeRaw.slice(0, sepIdx).replace("周", "");
-    const rowRaw = timeRaw.slice(sepIdx);
-    const col = CN2EN_NUM[colRaw] - 1;
-    const [r0, r1] = rowRaw.split("-").map(n => parseInt(n) - 1);
-    for (let row = r0; row <= r1; row++) {
-      const exists = table._postAppend.some(cc =>
-        cc.classname === classname && cc._row === row && cc._col === col
-      );
-      if (!exists) {
-        const cc = new CourseCell(row, col, null, undefined, null, true);
-        cc.classname = classname;
-        cc.classroom = classroom;
-        cc.frequency = freqRaw;
-        cc.examinfo = "";
-        cc.note = "";
-        table._postAppend.push(cc);
-      }
-    }
+    const placement = timeRaw.match(/^周([一二三四五六日])(\d{1,2})-(\d{1,2})$/);
+    if (!placement) return;
+    const [, day, firstPeriod, lastPeriod] = placement;
+    table._queuePostAppend({
+      classname,
+      frequency: freqRaw,
+      col: CN2EN_NUM[day] - 1,
+      firstRow: Number(firstPeriod) - 1,
+      lastRow: Number(lastPeriod) - 1,
+      classrooms: classroomRaw.split("、").map(value => value.trim()).filter(Boolean),
+    });
   }
 }
 
@@ -275,6 +256,8 @@ class CourseCell {
 class CourseTable {
   constructor(ws) {
     this._postAppend = [];
+    this._postAppendRequests = new Map();
+    this._classroomChoiceRequests = [];
     this._table = [];
     this.options = null;
     this._paintMem = {};
@@ -323,6 +306,8 @@ class CourseTable {
       }
     }
 
+    this._finalizePostAppendRequests();
+
     // Merge post-append cells
     for (const cc of this._postAppend) {
       if (this._table[cc._row] && cc._col < this._table[cc._row].length) {
@@ -333,6 +318,67 @@ class CourseTable {
 
   shape() { return [this._table.length, this._table[0].length]; }
   getCell(r, c) { return this._table[r][c]; }
+
+  _queuePostAppend(request) {
+    const key = [request.classname, request.frequency, request.col, request.firstRow, request.lastRow].join("|");
+    const existing = this._postAppendRequests.get(key);
+    if (existing) {
+      existing.classrooms = [...new Set([...existing.classrooms, ...request.classrooms])];
+    } else {
+      this._postAppendRequests.set(key, { ...request, key });
+    }
+  }
+
+  _finalizePostAppendRequests() {
+    for (const request of this._postAppendRequests.values()) {
+      const classrooms = [...new Set(request.classrooms.filter(value => value !== "暂无"))];
+      if (classrooms.length > 1) {
+        this._classroomChoiceRequests.push({
+          ...request,
+          classrooms,
+          options: [...classrooms, "暂无"],
+        });
+      } else {
+        this._appendPostAppend(request, classrooms[0] || "暂无");
+      }
+    }
+  }
+
+  _appendPostAppend(request, classroom) {
+    for (let row = request.firstRow; row <= request.lastRow; row++) {
+      const exists = this._postAppend.some(cc =>
+        cc.classname === request.classname && cc._row === row && cc._col === request.col
+      );
+      if (exists) continue;
+
+      const cc = new CourseCell(row, request.col, null, undefined, null, true);
+      cc.classname = request.classname;
+      cc.classroom = classroom;
+      cc.frequency = request.frequency;
+      cc.examinfo = "";
+      cc.note = "";
+      this._postAppend.push(cc);
+      if (this._table[row] && request.col < this._table[row].length) {
+        this._table[row][request.col] = cc;
+      }
+    }
+  }
+
+  getClassroomChoiceRequests() {
+    return this._classroomChoiceRequests.map(request => ({
+      ...request,
+      classrooms: [...request.classrooms],
+      options: [...request.options],
+    }));
+  }
+
+  selectClassroom(request, classroom) {
+    const stored = this._classroomChoiceRequests.find(choice => choice.key === request.key);
+    if (!stored) return;
+    const selected = stored.options.includes(classroom) ? classroom : "暂无";
+    this._appendPostAppend(stored, selected);
+    this._classroomChoiceRequests = this._classroomChoiceRequests.filter(choice => choice.key !== stored.key);
+  }
 
   _typographyKey(kind, row, col) {
     return kind;
@@ -814,7 +860,7 @@ function generate() {
   showStatus("正在解析文件…");
 
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: "array" });
@@ -829,6 +875,7 @@ function generate() {
       };
 
       currentTable = new CourseTable(ws);
+      await resolveClassroomChoices(currentTable);
       currentTable.prepare(options);
 
       const container = document.getElementById("table-container");
@@ -860,6 +907,82 @@ function generate() {
     }
   };
   reader.readAsArrayBuffer(currentFile);
+}
+
+async function resolveClassroomChoices(table) {
+  for (const request of table.getClassroomChoiceRequests()) {
+    const classroom = await openClassroomChoicePopup(request);
+    table.selectClassroom(request, classroom);
+  }
+}
+
+function openClassroomChoicePopup(request) {
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+
+    const card = document.createElement("div");
+    card.className = "modal-card classroom-choice-card";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+    card.setAttribute("aria-labelledby", "classroom-choice-heading");
+
+    const heading = document.createElement("h3");
+    heading.id = "classroom-choice-heading";
+    heading.className = "modal-heading";
+    heading.textContent = "Select classroom";
+    card.appendChild(heading);
+
+    const description = document.createElement("p");
+    description.className = "modal-description";
+    const periodText = request.firstRow === request.lastRow
+      ? `第${request.firstRow + 1}节`
+      : `第${request.firstRow + 1}–${request.lastRow + 1}节`;
+    description.textContent = `${request.classname} · 周${EN2CN_NUM[request.col]} · ${periodText}`;
+    card.appendChild(description);
+
+    const field = document.createElement("div");
+    field.className = "modal-field";
+    const label = document.createElement("label");
+    label.htmlFor = "classroom-choice-select";
+    label.textContent = "Classroom";
+    const select = document.createElement("select");
+    select.id = "classroom-choice-select";
+    for (const classroom of request.options) {
+      const option = document.createElement("option");
+      option.value = classroom;
+      option.textContent = classroom;
+      select.appendChild(option);
+    }
+    field.appendChild(label);
+    field.appendChild(select);
+    card.appendChild(field);
+
+    const actions = document.createElement("div");
+    actions.className = "modal-actions";
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className = "button-primary";
+    confirmButton.textContent = "Use classroom";
+    actions.appendChild(confirmButton);
+    card.appendChild(actions);
+    overlay.appendChild(card);
+
+    function finish(classroom) {
+      document.removeEventListener("keydown", onKeydown);
+      overlay.remove();
+      resolve(classroom);
+    }
+
+    function onKeydown(event) {
+      if (event.key === "Escape") finish("暂无");
+    }
+
+    confirmButton.addEventListener("click", () => finish(select.value));
+    document.addEventListener("keydown", onKeydown);
+    document.body.appendChild(overlay);
+    select.focus();
+  });
 }
 
 // ─── Cell edit modal ────────────────────────────────────────
