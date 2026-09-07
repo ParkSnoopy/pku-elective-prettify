@@ -25,7 +25,7 @@ function formatClassTime(time, format = "24", zeroPadding = true) {
   const [hour, minute] = time.split(":").map(Number);
   const displayHour = format === "12" ? hour % 12 || 12 : hour;
   const hourText = zeroPadding ? String(displayHour).padStart(2, "0") : String(displayHour);
-  return `${hourText}:${String(minute).padStart(2, "0")}${format === "12" ? ` ${hour < 12 ? "AM" : "PM"}` : ""}`;
+  return `${hourText}:${String(minute).padStart(2, "0")}${format === "12" ? ` ${hour <= 12 ? "AM" : "PM"}` : ""}`;
 }
 
 const MEAL_BREAKS = new Set([4, 9]);

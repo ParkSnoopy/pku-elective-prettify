@@ -583,6 +583,8 @@ test("formatClassTime: supports 24-hour and zero-padded 12-hour labels", () => {
   eq(app.formatClassTime("08:00", "24"), "08:00");
   eq(app.formatClassTime("08:00", "24", false), "8:00");
   eq(app.formatClassTime("08:00", "12"), "08:00 AM");
+  eq(app.formatClassTime("12:00", "12"), "12:00 AM");
+  eq(app.formatClassTime("12:00", "12", false), "12:00 AM");
   eq(app.formatClassTime("13:00", "12"), "01:00 PM");
   eq(app.formatClassTime("18:40", "12"), "06:40 PM");
   eq(app.formatClassTime("18:40", "12", false), "6:40 PM");

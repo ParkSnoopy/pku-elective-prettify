@@ -702,24 +702,37 @@ body:not(:has(.timetable)) .output-section {
   background: var(--color-surface-cream-strong);
   text-align: center;
   vertical-align: middle;
+  position: relative;
 }
 
 .timetable .time-label .period {
   font-family: var(--cell-font, "Noto Serif CJK SC", serif);
   font-size: var(--cell-font-size, 30px);
+  line-height: 1;
   font-weight: 700;
   color: var(--color-ink);
   display: block;
-  margin: 1px 0;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
 }
 
 .timetable .time-label .time-range {
   display: block;
   font-family: var(--font-mono);
   font-size: calc(var(--cell-font-size, 30px) - 14px);
+  line-height: 1;
   font-weight: 500;
   color: var(--color-muted);
+  position: absolute;
+  left: 0;
+  width: 100%;
 }
+
+.timetable .time-label .start-time { top: 6px; }
+.timetable .time-label .end-time { bottom: 6px; }
 
 /* Course cells */
 .timetable .cell {
