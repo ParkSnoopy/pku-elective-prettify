@@ -10,7 +10,7 @@ Turn the `schedule.xls` exported from [elective.pku.edu.cn](https://elective.pku
 2. Visit the [page](https://parksnoopy-undergraduate.github.io/elective/).
 3. Select the downloaded file, choose a palette, and generate the timetable.
 4. Click a timetable cell to edit its content or typography when needed.
-5. Export the result as PNG or XLSX.
+5. Export the result as SVG, PNG, or XLSX.
 
 ## Support
 

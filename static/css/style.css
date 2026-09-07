@@ -60,7 +60,6 @@
   --color-surface-dark-soft: #1f1e1b;
   --color-hairline: #e6dfd8;
   --color-hairline-soft: #ebe6df;
-  --color-table-grid: #d6d6d3;
   --color-row-divider: #92918d;
 
   /* Text */
@@ -253,13 +252,13 @@ select {
 }
 
 input[type="file"] {
-  height: 60px;
+  height: 40px;
   padding: 0 14px 0 0;
-  line-height: 58px;
+  line-height: 38px;
 }
 
 input[type="file"]::file-selector-button {
-  height: 58px;
+  height: 38px;
   margin-right: 14px;
   padding: 0 18px;
   border: 0;
@@ -595,40 +594,31 @@ body:not(:has(.timetable)) .output-section {
 .timetable {
   border-collapse: collapse;
   table-layout: fixed;
+  border: 1.5px solid var(--color-row-divider);
   border-radius: 0;
-  outline: 2px solid var(--color-row-divider);
-  outline-offset: -2px;
   background: var(--color-canvas);
 }
 
 .timetable th,
 .timetable td {
-  border: 1px solid var(--color-table-grid);
+  border: 0;
   padding: 0;
   vertical-align: middle;
 }
 
+.timetable thead th {
+  border-bottom: 1.5px solid var(--color-row-divider);
+}
+
 .timetable tbody .period-row + .period-row > td {
-  border-top: 2px solid var(--color-row-divider);
+  border-top: 1.5px solid var(--color-row-divider);
 }
 
 .timetable .meal-break td {
   height: 30px;
-  border-top: 2px solid var(--color-row-divider);
-  border-bottom: 2px solid var(--color-row-divider);
+  border-top: 1.5px solid var(--color-row-divider);
+  border-bottom: 1.5px solid var(--color-row-divider);
   background: var(--color-canvas);
-  color: var(--color-muted);
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-align: center;
-}
-
-.timetable .meal-break time {
-  margin-left: var(--space-xs);
-  font-family: var(--font-mono);
-  letter-spacing: 0;
 }
 
 /* Corner cell */

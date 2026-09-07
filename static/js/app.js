@@ -13,10 +13,8 @@ const CLASS_TIME_MAP = {
   10: "18:40", 11: "19:40", 12: "20:40",
 };
 
-const MEAL_BREAKS = {
-  4: { label: "Lunch", time: "12:00–13:00" },
-  9: { label: "Dinner", time: "18:00–18:40" },
-};
+const MEAL_BREAKS = new Set([4, 9]);
+const EXPORT_PADDING = 12;
 
 const EN2CN_NUM = ["一","二","三","四","五","六","日"];
 const CN2EN_NUM = {"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"日":7};
@@ -501,12 +499,9 @@ class CourseTable {
         }
       }
       html.push("</tr>");
-      const mealBreak = MEAL_BREAKS[period];
-      if (mealBreak && period < rowLen) {
+      if (MEAL_BREAKS.has(period) && period < rowLen) {
         html.push(
-          `<tr class="meal-break" aria-label="${mealBreak.label}, ${mealBreak.time}">` +
-          `<td colspan="${colLen + 1}"><span>${mealBreak.label}</span>` +
-          `<time>${mealBreak.time}</time></td></tr>`
+          `<tr class="meal-break" aria-hidden="true"><td colspan="${colLen + 1}"></td></tr>`
         );
       }
     }
@@ -805,6 +800,7 @@ function init() {
   genBtn.addEventListener("click", generate);
 
   // Export buttons
+  document.getElementById("export-svg-btn").addEventListener("click", exportSVG);
   document.getElementById("export-png-btn").addEventListener("click", exportPNG);
   document.getElementById("export-xlsx-btn").addEventListener("click", exportXLSX);
 
@@ -1288,6 +1284,70 @@ async function withExportBusy(button, busyLabel, task) {
   }
 }
 
+function collectExportCss() {
+  const chunks = [];
+  for (const sheet of document.styleSheets) {
+    const baseUrl = sheet.href || document.baseURI;
+    for (const rule of sheet.cssRules) {
+      chunks.push(rule.cssText.replace(/url\((['"]?)(.*?)\1\)/g, (match, quote, url) => {
+        if (url.startsWith("data:") || url.startsWith("#")) return match;
+        return `url("${new URL(url, baseUrl).href}")`;
+      }));
+    }
+  }
+  return chunks.join("\n");
+}
+
+async function exportSVG() {
+  const container = document.getElementById("table-container");
+  const table = container.querySelector(".timetable");
+  if (!table) return;
+
+  const button = document.getElementById("export-svg-btn");
+  try {
+    await withExportBusy(button, "Building SVG…", async () => {
+      await waitForFonts();
+      fitTableAspect(container);
+
+      try {
+        const tableWidth = table.offsetWidth;
+        const tableHeight = table.offsetHeight;
+        const width = tableWidth + EXPORT_PADDING * 2;
+        const height = tableHeight + EXPORT_PADDING * 2;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svg.setAttribute("width", String(width));
+        svg.setAttribute("height", String(height));
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+        const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+        foreignObject.setAttribute("width", String(width));
+        foreignObject.setAttribute("height", String(height));
+        const wrapper = document.createElement("div");
+        wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+        wrapper.style.cssText = `box-sizing:border-box;width:${width}px;height:${height}px;` +
+          `padding:${EXPORT_PADDING}px;background:${getComputedStyle(document.body).backgroundColor};`;
+        const style = document.createElement("style");
+        style.textContent = collectExportCss();
+        const clone = table.cloneNode(true);
+        clone.style.transform = "none";
+        wrapper.appendChild(style);
+        wrapper.appendChild(clone);
+        foreignObject.appendChild(wrapper);
+        svg.appendChild(foreignObject);
+
+        const source = new XMLSerializer().serializeToString(svg);
+        downloadBlob(new Blob([source], { type: "image/svg+xml;charset=utf-8" }), "timetable.svg");
+      } finally {
+        fitTableDisplay(container);
+      }
+    });
+  } catch (err) {
+    showStatus("SVG 导出失败: " + err.message, "error");
+    console.error(err);
+  }
+}
+
 async function exportPNG() {
   const container = document.getElementById("table-container");
   const table = container.querySelector(".timetable");
@@ -1299,9 +1359,12 @@ async function exportPNG() {
       await waitForFonts();
       fitTableAspect(container);
 
+      const tableWidth = table.offsetWidth;
+      const tableHeight = table.offsetHeight;
       const staging = document.createElement("div");
-      staging.style.cssText = "position:fixed;left:-100000px;top:0;padding:0;" +
-        `background:${getComputedStyle(document.body).backgroundColor};display:inline-block;`;
+      staging.style.cssText = `position:fixed;left:-100000px;top:0;box-sizing:content-box;` +
+        `width:${tableWidth}px;height:${tableHeight}px;padding:${EXPORT_PADDING}px;` +
+        `background:${getComputedStyle(document.body).backgroundColor};`;
       const clone = table.cloneNode(true);
       clone.style.transform = "none";
       clone.style.height = "auto";
@@ -1310,8 +1373,8 @@ async function exportPNG() {
 
       try {
         void staging.offsetHeight;
-        const fullWidth = staging.scrollWidth;
-        const fullHeight = staging.scrollHeight;
+        const fullWidth = staging.offsetWidth;
+        const fullHeight = staging.offsetHeight;
         const canvas = await html2canvas(staging, {
           backgroundColor: getComputedStyle(document.body).backgroundColor,
           scale: 2,

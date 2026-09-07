@@ -447,7 +447,7 @@ test("light font color: applies to every cell assigned to palette color", () => 
   app.lightTextColorIndexes.clear();
 });
 
-test("render: inserts labeled meal breaks after periods 4 and 9", () => {
+test("render: inserts empty meal breaks after periods 4 and 9", () => {
   const ws = [MOCK_HEADER];
   for (let period = 1; period <= 12; period++) {
     ws.push([`第${period}节`, "", "", "", "", "", "", ""]);
@@ -456,10 +456,9 @@ test("render: inserts labeled meal breaks after periods 4 and 9", () => {
   t.prepare({ groupByClass: false });
   const html = t.render(["#111111", "#222222", "#333333", "#444444", "#555555"]);
   eq((html.match(/class="meal-break"/g) || []).length, 2);
-  ok(html.includes("Lunch"));
-  ok(html.includes("12:00–13:00"));
-  ok(html.includes("Dinner"));
-  ok(html.includes("18:00–18:40"));
+  eq((html.match(/<tr class="meal-break" aria-hidden="true"><td colspan="6"><\/td><\/tr>/g) || []).length, 2);
+  ok(!html.includes("Lunch"));
+  ok(!html.includes("Dinner"));
 });
 
 test("XLSX export: worksheet mirrors timetable structure and styles", () => {
